@@ -2,104 +2,150 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>ZoneAudio — Player</title>
+<title>ZoneAudio Player</title>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#0c0e1a;--sf:#131729;--cd:#181d33;--cu:#1f2640;--bd:#2a3154;--bl:#36406b;--ac:#6c5ce7;--gn:#00cec9;--gng:rgba(0,206,201,.35);--am:#fdcb6e;--rd:#ff6b81;--tx:#e8eaf6;--t2:#9aa3c4;--t3:#5a6384;--mn:'JetBrains Mono',monospace;--sn:'Inter',system-ui,sans-serif;--r:12px;--rs:8px}
-*{margin:0;padding:0;box-sizing:border-box}body{font-family:var(--sn);background:var(--bg);color:var(--tx);min-height:100vh;-webkit-font-smoothing:antialiased}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{font-family:'Inter',system-ui,sans-serif;background:#282c36;color:#fff;min-height:100vh;-webkit-font-smoothing:antialiased}
+input,button{font-family:inherit;outline:none}
+
+/* ── Shared ── */
 .screen{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
-.glass{background:var(--cd);border:1px solid var(--bd);border-radius:16px}
-.panel{max-width:440px;width:100%;padding:40px 32px;text-align:center;position:relative}
-.brand{margin-bottom:24px}.brand-ic{width:48px;height:48px;border-radius:12px;background:linear-gradient(135deg,#6c5ce7,#e84393,#fd79a8);display:flex;align-items:center;justify-content:center;margin:0 auto 14px;font-size:20px;font-weight:700;font-family:var(--mn);color:#fff;box-shadow:0 4px 20px rgba(108,92,231,.3)}.brand h1{font-size:20px;font-weight:700;margin-bottom:3px}.brand p{font-size:12px;color:var(--t2)}
-.lb{font-family:var(--mn);font-size:9px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:var(--t3)}
-.err{color:var(--rd);font-size:11px;margin-top:6px;font-family:var(--mn)}
+.panel{background:rgba(255,255,255,.06);border:2px solid rgba(255,255,255,.1);border-radius:20px;width:100%;padding:40px 32px;text-align:center;position:relative;box-shadow:0 8px 40px rgba(0,0,0,.3)}
 
-.zg{display:flex;flex-direction:column;gap:8px}
-.zb{display:flex;align-items:center;gap:14px;padding:14px 18px;border-radius:var(--rs);border:1px solid var(--bd);background:var(--sf);cursor:pointer;text-align:left;transition:all .2s;-webkit-tap-highlight-color:transparent}
-.zb:hover,.zb:active{border-color:var(--bl);background:var(--cu);transform:translateX(3px)}
-.zn{font-family:var(--mn);font-size:18px;font-weight:700;width:28px}.zm{font-size:14px;font-weight:500}
+/* ── Zone Select ── */
+.sel-panel{max-width:480px}
+.brand{margin-bottom:28px}
+.brand-dot{width:10px;height:10px;border-radius:50%;background:#34d399;display:inline-block;margin-right:8px;box-shadow:0 0 10px rgba(52,211,153,.4)}
+.brand h1{font-size:22px;font-weight:800;letter-spacing:-.3px;display:inline}
+.brand p{font-size:12px;color:rgba(255,255,255,.4);margin-top:6px}
+.conn-msg{font-size:11px;color:rgba(255,255,255,.4);margin-bottom:20px}
 
-.mode-badge{display:inline-flex;align-items:center;gap:6px;padding:5px 14px;border-radius:20px;font-family:var(--mn);font-size:10px;font-weight:600;margin-bottom:14px;border:1px solid var(--bd)}
-.mode-badge.local{color:var(--gn);border-color:rgba(0,206,201,.3);background:rgba(0,206,201,.08)}
-.mode-badge.cloud{color:#a29bfe;border-color:rgba(162,155,254,.3);background:rgba(108,92,231,.08)}
-.mode-badge.off{color:var(--rd);border-color:rgba(255,107,129,.3);background:rgba(255,107,129,.08)}
+.zone-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.zone-card{display:flex;align-items:center;gap:14px;padding:18px 20px;border-radius:14px;border:2px solid rgba(255,255,255,.08);background:rgba(255,255,255,.04);cursor:pointer;transition:all .2s;text-align:left}
+.zone-card:active{transform:scale(.97)}
+.zone-card:nth-child(1){border-color:rgba(248,113,113,.4);box-shadow:0 0 15px rgba(248,113,113,.1)}
+.zone-card:nth-child(2){border-color:rgba(52,211,153,.4);box-shadow:0 0 15px rgba(52,211,153,.1)}
+.zone-card:nth-child(3){border-color:rgba(251,191,36,.4);box-shadow:0 0 15px rgba(251,191,36,.1)}
+.zone-card:nth-child(4){border-color:rgba(167,139,250,.4);box-shadow:0 0 15px rgba(167,139,250,.1)}
+.zone-card:nth-child(5){border-color:rgba(96,165,250,.4);box-shadow:0 0 15px rgba(96,165,250,.1);grid-column:1/3;max-width:50%;margin:0 auto}
+.zone-card:active{box-shadow:0 0 25px rgba(255,255,255,.1)}
+.zc-badge{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800;color:#fff;flex-shrink:0}
+.zc-name{font-size:15px;font-weight:700}
+.zc-sub{font-size:10px;color:rgba(255,255,255,.3);margin-top:2px}
 
-.p-badge{width:72px;height:72px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--mn);font-size:26px;font-weight:700;color:#fff;margin:0 auto 12px;box-shadow:0 0 0 3px var(--bg),0 0 0 5px var(--bd)}
-.p-orb{width:10px;height:10px;border-radius:50%;margin:0 auto 6px;transition:all .4s}
-.p-st{font-family:var(--mn);font-size:10px;font-weight:600;letter-spacing:2.5px;color:var(--t3);margin-bottom:12px}
-.p-np{padding:14px;background:var(--bg);border:1px solid var(--bd);border-radius:var(--rs);margin-bottom:16px;text-align:left}
-.p-song{font-size:15px;font-weight:600;margin-bottom:4px}.p-detail{font-family:var(--mn);font-size:10px;color:var(--t3);margin-bottom:10px}
-.p-prog{display:flex;align-items:center;gap:8px}.p-prog-bar{flex:1;height:4px;background:var(--bd);border-radius:2px;overflow:hidden}.p-prog-fill{height:100%;border-radius:2px;transition:width 1s}.p-prog-time{font-family:var(--mn);font-size:9px;color:var(--t3);min-width:34px}
+/* ── Player Screen ── */
+.play-panel{max-width:500px}
 
-/* Touch-friendly controls for iPad/iPhone */
-.p-ctrls{display:flex;gap:8px;margin-bottom:16px}
-.p-btn{flex:1;padding:14px 0;border:1px solid var(--bd);border-radius:var(--rs);font-size:18px;cursor:pointer;color:var(--t2);background:var(--bg);transition:all .15s;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent}
-.p-btn:active{transform:scale(.95)}
-.p-btn.b-prev,.p-btn.b-next{flex:0 0 50px}
-.p-btn.b-play:active{color:#00cec9;border-color:#00cec9}
-.p-btn.b-pause:active{color:#fdcb6e;border-color:#fdcb6e}
-.p-btn.b-prev:active,.p-btn.b-next:active{color:#a29bfe;border-color:#a29bfe}
+.p-head{display:flex;align-items:center;gap:14px;margin-bottom:20px;text-align:left}
+.p-icon{width:56px;height:56px;border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:800;color:#fff;flex-shrink:0}
+.p-title{font-size:20px;font-weight:800;letter-spacing:-.3px}
+.p-stat{font-size:10px;color:rgba(255,255,255,.35);display:flex;align-items:center;gap:6px;margin-top:3px}
+.p-dot{width:7px;height:7px;border-radius:50%;transition:all .3s}
+.p-mode-tag{font-size:9px;font-weight:700;padding:3px 10px;border-radius:12px;letter-spacing:.5px}
+.p-mode-tag.local{color:#34d399;background:rgba(52,211,153,.1);border:1px solid rgba(52,211,153,.15)}
+.p-mode-tag.cloud{color:#60a5fa;background:rgba(96,165,250,.1);border:1px solid rgba(96,165,250,.15)}
 
-.p-vol{display:flex;align-items:center;gap:10px;margin:0 auto 16px;max-width:300px}
-.p-vol-label{font-family:var(--mn);font-size:9px;font-weight:700;color:var(--t3);letter-spacing:1px}
-.p-vol input[type=range]{flex:1;height:6px;cursor:pointer;appearance:none;background:var(--bd);border-radius:3px;outline:none}
-.p-vol input[type=range]::-webkit-slider-thumb{appearance:none;width:22px;height:22px;border-radius:50%;background:var(--t2);border:3px solid var(--bg);cursor:pointer}
-.p-vol .vp{font-family:var(--mn);font-size:12px;font-weight:600;color:var(--t2);width:36px;text-align:right}
+/* Now Playing Card */
+.np-card{background:rgba(0,0,0,.25);border-radius:16px;padding:20px;margin-bottom:20px;text-align:left;border:1px solid rgba(255,255,255,.05)}
+.np-song{font-size:18px;font-weight:700;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.np-track{font-size:10px;color:rgba(255,255,255,.3);margin-bottom:12px;font-weight:500;letter-spacing:.3px}
+.np-bar{display:flex;align-items:center;gap:8px}
+.np-bar-bg{flex:1;height:4px;background:rgba(255,255,255,.08);border-radius:2px;overflow:hidden}
+.np-bar-fg{height:100%;border-radius:2px;transition:width 1s}
+.np-bar-t{font-size:9px;color:rgba(255,255,255,.3);font-weight:500;min-width:30px}
 
-.p-pl{text-align:left;margin-top:16px;max-height:240px;overflow-y:auto;border:1px solid var(--bd);border-radius:var(--rs);background:var(--bg);-webkit-overflow-scrolling:touch}
-.p-pl-i{padding:12px 14px;font-size:13px;border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:8px;cursor:pointer;-webkit-tap-highlight-color:transparent}
-.p-pl-i:last-child{border-bottom:none}
-.p-pl-i.active{background:rgba(108,92,231,.12);color:#a29bfe}
-.p-pl-i:active{background:var(--cu)}
-.p-pl-n{font-family:var(--mn);font-size:10px;color:var(--t3);width:22px;text-align:right}
-.p-pl-t{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-@media(max-width:520px){.panel{padding:28px 18px}}
+/* Transport Controls */
+.transport{display:flex;gap:8px;margin-bottom:20px}
+.tr-btn{flex:1;height:48px;border:2px solid rgba(255,255,255,.08);border-radius:12px;font-size:18px;cursor:pointer;color:rgba(255,255,255,.45);background:rgba(255,255,255,.04);display:flex;align-items:center;justify-content:center;transition:all .15s}
+.tr-btn:active{transform:scale(.92)}
+.tr-btn.play:active{color:#34d399;border-color:#34d399;background:rgba(52,211,153,.08)}
+.tr-btn.pause:active{color:#fbbf24;border-color:#fbbf24;background:rgba(251,191,36,.08)}
+.tr-btn.sk{max-width:56px;font-size:14px}
+.tr-btn.sk:active{color:#60a5fa;border-color:#60a5fa}
+
+/* Volume */
+.vol-row{display:flex;align-items:center;gap:12px;margin-bottom:20px;padding:0 4px}
+.vol-ico{font-size:16px;color:rgba(255,255,255,.3)}
+.vol-row input[type=range]{flex:1;height:6px;cursor:pointer;appearance:none;background:rgba(255,255,255,.1);border-radius:3px}
+.vol-row input[type=range]::-webkit-slider-thumb{appearance:none;width:24px;height:24px;border-radius:50%;background:#fff;box-shadow:0 2px 8px rgba(0,0,0,.4);cursor:pointer}
+.vol-num{font-size:14px;font-weight:700;color:rgba(255,255,255,.45);width:32px;text-align:right}
+
+/* Playlist */
+.playlist{text-align:left;max-height:220px;overflow-y:auto;border-radius:14px;border:1px solid rgba(255,255,255,.06);background:rgba(0,0,0,.2);-webkit-overflow-scrolling:touch}
+.pl-item{padding:14px 16px;font-size:13px;border-bottom:1px solid rgba(255,255,255,.04);display:flex;align-items:center;gap:10px;cursor:pointer;transition:background .12s}
+.pl-item:last-child{border-bottom:none}
+.pl-item:active{background:rgba(255,255,255,.06)}
+.pl-item.active{background:rgba(96,165,250,.08);border-left:3px solid #60a5fa}
+.pl-num{font-size:10px;color:rgba(255,255,255,.25);width:22px;text-align:right;font-weight:600}
+.pl-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500}
+
+.err-msg{color:#f87171;font-size:11px;margin-bottom:12px;font-weight:500}
+.foot-label{font-size:8px;color:rgba(255,255,255,.15);letter-spacing:1.5px;font-weight:500;margin-top:16px}
+
+@media(max-width:500px){.panel{padding:28px 18px}.zone-grid{grid-template-columns:1fr}.zone-card:nth-child(5){max-width:100%}}
 </style>
 </head>
 <body>
 
 <!-- ZONE SELECT -->
 <div id="v-sel" class="screen">
-  <div class="glass panel">
-    <div class="brand"><div class="brand-ic">ZA</div><h1>ZoneAudio Player</h1><p>Select zone for this device</p></div>
-    <p id="conn" style="font-family:var(--mn);font-size:11px;color:var(--t2);margin-bottom:20px">Connecting…</p>
-    <div class="zg" id="zg" style="display:none"></div>
+  <div class="panel sel-panel">
+    <div class="brand"><span class="brand-dot"></span><h1>ZoneAudio</h1><p>Select zone for this device</p></div>
+    <p class="conn-msg" id="conn">Connecting…</p>
+    <div class="zone-grid" id="zg" style="display:none"></div>
   </div>
 </div>
 
 <!-- PLAYER -->
 <div id="v-play" class="screen" style="display:none">
-  <div class="glass panel" id="p-card">
-    <div class="p-badge" id="p-badge"></div>
-    <h2 id="p-title" style="margin-bottom:6px"></h2>
-    <div class="mode-badge" id="mode">DETECTING…</div>
-    <div class="p-orb" id="p-orb"></div>
-    <p class="p-st" id="p-st">STANDBY</p>
-    <div class="p-np" id="p-np" style="display:none">
-      <div class="p-song" id="p-song"></div>
-      <div class="p-detail" id="p-dtl"></div>
-      <div class="p-prog"><span class="p-prog-time" id="p-ct">0:00</span><div class="p-prog-bar"><div class="p-prog-fill" id="p-pf"></div></div><span class="p-prog-time" id="p-dt">0:00</span></div>
+  <div class="panel play-panel" id="p-card">
+
+    <div class="p-head">
+      <div class="p-icon" id="p-icon"></div>
+      <div>
+        <div class="p-title" id="p-title"></div>
+        <div class="p-stat">
+          <span class="p-dot" id="p-dot" style="background:rgba(255,255,255,.15)"></span>
+          <span id="p-stat-text">STANDBY</span>
+          <span class="p-mode-tag local" id="p-mode">LOCAL</span>
+        </div>
+      </div>
     </div>
-    <!-- Touch controls for iPad/iPhone -->
-    <div class="p-ctrls">
-      <button class="p-btn b-prev" onclick="playPrev()">⏮</button>
-      <button class="p-btn b-play" onclick="playResume()">▶</button>
-      <button class="p-btn b-pause" onclick="doPause()">⏸</button>
-      <button class="p-btn b-next" onclick="playNext()">⏭</button>
+
+    <div class="np-card" id="np-card" style="display:none">
+      <div class="np-song" id="np-song"></div>
+      <div class="np-track" id="np-track"></div>
+      <div class="np-bar">
+        <span class="np-bar-t" id="np-ct">0:00</span>
+        <div class="np-bar-bg"><div class="np-bar-fg" id="np-fg"></div></div>
+        <span class="np-bar-t" id="np-dt">0:00</span>
+      </div>
     </div>
-    <div class="p-vol">
-      <span class="p-vol-label">VOL</span>
-      <input type="range" min="0" max="100" value="70" id="p-range" oninput="localVol(this.value)">
-      <span class="vp" id="p-vp">70</span>
+
+    <div class="transport">
+      <button class="tr-btn sk" onclick="playPrev()">⏮</button>
+      <button class="tr-btn play" onclick="playResume()">▶</button>
+      <button class="tr-btn pause" onclick="doPause()">⏸</button>
+      <button class="tr-btn sk" onclick="playNext()">⏭</button>
     </div>
-    <p id="p-err" class="err" style="display:none"></p>
-    <div class="p-pl" id="p-pl" style="display:none"></div>
-    <p class="lb" style="margin-top:14px">TAP A SONG TO PLAY · CONTROLLED FROM IPAD</p>
+
+    <div class="vol-row">
+      <span class="vol-ico">◁</span>
+      <input type="range" min="0" max="100" value="70" id="vol-range" oninput="localVol(this.value)">
+      <span class="vol-num" id="vol-num">70</span>
+    </div>
+
+    <p class="err-msg" id="p-err" style="display:none"></p>
+
+    <div class="playlist" id="p-pl" style="display:none"></div>
+
+    <p class="foot-label">PLAYING FROM LOCAL SERVER · CONTROLLED FROM IPAD</p>
     <audio id="au" preload="auto" playsinline></audio>
   </div>
 </div>
@@ -108,7 +154,7 @@
 const FB={apiKey:"AIzaSyDgxVnFlhE5UtQws74QDdwsU2FFs9sxCVA",databaseURL:"https://audiocontroller-670a5-default-rtdb.firebaseio.com",projectId:"audiocontroller-670a5"};
 const LOCAL="http://localhost:8080";
 const GAPI="AIzaSyA8km_ZwkkRGVInQq3opWjoHJWOGW8DI2E";
-const IDS=[1,2,3,4,5],COL={1:'#ff6b81',2:'#00cec9',3:'#fdcb6e',4:'#a29bfe',5:'#74b9ff'};
+const IDS=[1,2,3,4,5],COL={1:'#f87171',2:'#34d399',3:'#fbbf24',4:'#a78bfa',5:'#60a5fa'};
 const NM=['Lobby','Main Hall','Conference A','Rooftop','Lounge'];
 let db,useLocal=false;
 let pS={id:0,vol:.7,st:'standby',fn:'',idx:-1,muted:false,src:'local'},playlist=[],lastTs=0;
@@ -119,7 +165,7 @@ function fmtT(s){if(!s||!isFinite(s))return'0:00';const m=Math.floor(s/60),ss=Ma
 firebase.initializeApp(FB);db=firebase.database();
 db.ref('_ping').set(Date.now()).then(()=>{
   document.getElementById('conn').textContent='✓ CONNECTED';
-  document.getElementById('zg').style.display='flex';
+  document.getElementById('zg').style.display='grid';
   buildZones();
   const z=parseInt(new URLSearchParams(location.search).get('zone'));
   if(z>=1&&z<=5)setTimeout(()=>startPlayer(z),500);
@@ -128,22 +174,17 @@ db.ref('_ping').set(Date.now()).then(()=>{
 function buildZones(){
   const g=document.getElementById('zg');
   IDS.forEach(id=>{
-    const b=document.createElement('button');b.className='zb';
-    b.innerHTML=`<span class="zn" style="color:${COL[id]}">${String(id).padStart(2,'0')}</span><span class="zm">${NM[id-1]}</span>`;
+    const b=document.createElement('div');b.className='zone-card';
+    b.innerHTML=`<div class="zc-badge" style="background:${COL[id]}">${String(id).padStart(2,'0')}</div><div><div class="zc-name">${NM[id-1]}</div><div class="zc-sub">Zone ${id}</div></div>`;
     b.onclick=()=>startPlayer(id);g.appendChild(b);
   });
 }
 
-async function checkLocal(){
-  try{const r=await fetch(LOCAL+'/playlist.json',{signal:AbortSignal.timeout(2000)});return r.ok}catch{return false}
-}
-
+async function checkLocal(){try{const r=await fetch(LOCAL+'/playlist.json',{signal:AbortSignal.timeout(2000)});return r.ok}catch{return false}}
 function getSongURL(song){
-  if(useLocal) return LOCAL+'/'+encodeURIComponent(song.name);
-  // Stream from Google Drive directly (works on iPad/iPhone)
-  if(song.id) return `https://drive.google.com/uc?export=download&id=${song.id}&confirm=t`;
-  // Fallback: try API endpoint
-  return `https://www.googleapis.com/drive/v3/files/${song.id}?alt=media&key=${GAPI}`;
+  if(useLocal)return LOCAL+'/'+encodeURIComponent(song.name);
+  if(song.id)return`https://drive.google.com/uc?export=download&id=${song.id}&confirm=t`;
+  return'';
 }
 
 async function startPlayer(id){
@@ -151,128 +192,55 @@ async function startPlayer(id){
   const c=COL[id];
   document.getElementById('v-sel').style.display='none';
   document.getElementById('v-play').style.display='flex';
-  document.getElementById('p-card').style.borderColor=c;
-  document.getElementById('p-badge').style.background=c;
-  document.getElementById('p-badge').textContent=String(id).padStart(2,'0');
+  // Neon border matching zone color
+  const card=document.getElementById('p-card');
+  const rgb=c==='#f87171'?'248,113,113':c==='#34d399'?'52,211,153':c==='#fbbf24'?'251,191,36':c==='#a78bfa'?'167,139,250':'96,165,250';
+  card.style.borderColor=`rgba(${rgb},.5)`;
+  card.style.boxShadow=`0 0 25px rgba(${rgb},.15),0 0 50px rgba(${rgb},.05)`;
+  document.getElementById('p-icon').style.background=c;
+  document.getElementById('p-icon').textContent=String(id).padStart(2,'0');
   document.getElementById('p-title').textContent=NM[id-1];
-  document.getElementById('p-pf').style.background=c;
-  document.getElementById('p-range').style.accentColor=c;
+  document.getElementById('np-fg').style.background=c;
+  document.getElementById('vol-range').style.accentColor=c;
   updUI();repSt();
 
-  // Detect mode: local server or cloud streaming
-  const mode=document.getElementById('mode');
+  // Detect local or cloud
   useLocal=await checkLocal();
-  if(useLocal){
-    mode.className='mode-badge local';
-    mode.textContent='● LOCAL SERVER · C:\\MUSIC';
-  }else{
-    mode.className='mode-badge cloud';
-    mode.textContent='☁ CLOUD STREAM · GOOGLE DRIVE';
-  }
+  const mode=document.getElementById('p-mode');
+  if(useLocal){mode.className='p-mode-tag local';mode.textContent='LOCAL'}
+  else{mode.className='p-mode-tag cloud';mode.textContent='CLOUD'}
+  document.getElementById('foot-label');
 
   const au=document.getElementById('au');
   au.onplay=()=>{pS.st='playing';updUI();repSt()};
   au.onpause=()=>{if(!au.ended){pS.st='paused';updUI();repSt()}};
   au.onended=()=>playNext();
-  au.onerror=()=>{
-    pS.st='error';
-    document.getElementById('p-err').textContent='LOAD FAILED — TAP ANOTHER SONG';
-    document.getElementById('p-err').style.display='block';
-    updUI();repSt();
-    setTimeout(playNext,3000);
-  };
-  au.onplaying=()=>{document.getElementById('p-err').style.display='none'};
-  au.onwaiting=()=>{document.getElementById('p-err').textContent='BUFFERING…';document.getElementById('p-err').style.display='block'};
+  au.onerror=()=>{pS.st='error';shErr('LOAD FAILED — TAP ANOTHER SONG');updUI();repSt();setTimeout(playNext,3000)};
+  au.onplaying=()=>hiErr();
+  au.onwaiting=()=>shErr('BUFFERING…');
 
-  // Listen for playlist from Firebase
-  db.ref('playlist').on('value',s=>{
-    const pl=s.val();if(!pl)return;
-    playlist=pl.map((x,i)=>({...x,index:i}));
-    renderPL();
-    // Auto-play first song if standby
-    if(pS.st==='standby'&&playlist.length){
-      // On iOS, audio needs user gesture — show tap prompt
-      if(!useLocal){
-        document.getElementById('p-err').textContent='TAP ▶ OR A SONG TO START';
-        document.getElementById('p-err').style.display='block';
-      }else{
-        playSong(0);
-      }
-    }
-  });
-
-  // Listen for commands from iPad controller
+  db.ref('playlist').on('value',s=>{const pl=s.val();if(!pl)return;playlist=pl.map((x,i)=>({...x,index:i}));renderPL();
+    if(pS.st==='standby'&&playlist.length){if(useLocal)playSong(0);else shErr('TAP ▶ OR A SONG TO START')}});
   db.ref(`players/${id}/command`).on('value',s=>{const cmd=s.val();if(cmd)execCmd(cmd)});
 
-  // Progress & status updates
   setInterval(()=>repSt(),3000);
-  setInterval(()=>{
-    const au=document.getElementById('au');
-    if(au&&au.duration){
-      document.getElementById('p-ct').textContent=fmtT(au.currentTime);
-      document.getElementById('p-dt').textContent=fmtT(au.duration);
-      document.getElementById('p-pf').style.width=(au.currentTime/au.duration*100)+'%';
-    }
-  },1000);
-
-  // Re-check local server periodically
-  setInterval(async()=>{
-    const was=useLocal;
-    useLocal=await checkLocal();
-    if(useLocal!==was){
-      mode.className=useLocal?'mode-badge local':'mode-badge cloud';
-      mode.textContent=useLocal?'● LOCAL SERVER · C:\\MUSIC':'☁ CLOUD STREAM · GOOGLE DRIVE';
-    }
-  },30000);
+  setInterval(()=>{const au=document.getElementById('au');if(au&&au.duration){document.getElementById('np-ct').textContent=fmtT(au.currentTime);document.getElementById('np-dt').textContent=fmtT(au.duration);document.getElementById('np-fg').style.width=(au.currentTime/au.duration*100)+'%'}},1000);
 }
 
-function playSong(i){
-  if(!playlist.length)return;
-  if(i<0)i=playlist.length-1;if(i>=playlist.length)i=0;
-  pS.idx=i;pS.fn=playlist[i].name;
-  const au=document.getElementById('au');
-  au.src=getSongURL(playlist[i]);
-  au.playbackRate=1;au.volume=pS.muted?0:pS.vol;
-  au.play().then(()=>{pS.st='playing'}).catch(()=>{
-    pS.st='ready';
-    document.getElementById('p-err').textContent='TAP ▶ TO PLAY';
-    document.getElementById('p-err').style.display='block';
-  });
-  updUI();repSt();renderPL();
-}
-
+function playSong(i){if(!playlist.length)return;if(i<0)i=playlist.length-1;if(i>=playlist.length)i=0;pS.idx=i;pS.fn=playlist[i].name;const au=document.getElementById('au');au.src=getSongURL(playlist[i]);au.playbackRate=1;au.volume=pS.muted?0:pS.vol;au.play().then(()=>{pS.st='playing'}).catch(()=>{pS.st='ready';shErr('TAP ▶ TO PLAY')});updUI();repSt();renderPL()}
 function playNext(){playSong(pS.idx+1)}
 function playPrev(){playSong(pS.idx-1)}
-function playResume(){
-  const au=document.getElementById('au');
-  if(pS.st==='paused'){au.play();return}
-  playSong(pS.idx>=0?pS.idx:0);
-}
+function playResume(){const au=document.getElementById('au');if(pS.st==='paused'){au.play();return}playSong(pS.idx>=0?pS.idx:0)}
 function doPause(){document.getElementById('au').pause();pS.st='paused';updUI();repSt()}
-function localVol(v){
-  pS.vol=v/100;
-  document.getElementById('au').volume=pS.muted?0:pS.vol;
-  document.getElementById('p-vp').textContent=v;
-  repSt();
-}
+function localVol(v){pS.vol=v/100;document.getElementById('au').volume=pS.muted?0:pS.vol;document.getElementById('vol-num').textContent=v;repSt()}
 
-function renderPL(){
-  const el=document.getElementById('p-pl');
-  if(!playlist.length){el.style.display='none';return}
-  el.style.display='block';el.innerHTML='';
-  playlist.forEach((s,i)=>{
-    const d=document.createElement('div');d.className='p-pl-i'+(i===pS.idx?' active':'');
-    d.innerHTML=`<span class="p-pl-n">${i+1}</span><span class="p-pl-t">${esc(s.name)}</span>`;
-    d.onclick=()=>playSong(i);
-    el.appendChild(d);
-  });
-}
+function renderPL(){const el=document.getElementById('p-pl');if(!playlist.length){el.style.display='none';return}el.style.display='block';el.innerHTML='';playlist.forEach((s,i)=>{const d=document.createElement('div');d.className='pl-item'+(i===pS.idx?' active':'');d.innerHTML=`<span class="pl-num">${i+1}</span><span class="pl-name">${esc(s.name.replace(/\.[^/.]+$/,''))}</span>`;d.onclick=()=>playSong(i);el.appendChild(d)})}
 
 function execCmd(cmd){
   if(cmd.ts===lastTs)return;lastTs=cmd.ts;
   if(cmd.source)pS.src=cmd.source;
   if(cmd.mute!==undefined){pS.muted=cmd.mute;document.getElementById('au').volume=pS.muted?0:pS.vol}
-  if(cmd.volume!==undefined){pS.vol=cmd.volume;if(!pS.muted)document.getElementById('au').volume=cmd.volume;document.getElementById('p-range').value=Math.round(cmd.volume*100);document.getElementById('p-vp').textContent=Math.round(cmd.volume*100)}
+  if(cmd.volume!==undefined){pS.vol=cmd.volume;if(!pS.muted)document.getElementById('au').volume=cmd.volume;document.getElementById('vol-range').value=Math.round(cmd.volume*100);document.getElementById('vol-num').textContent=Math.round(cmd.volume*100)}
   if(cmd.action==='play'){if(pS.st==='paused')document.getElementById('au').play();else playSong(pS.idx>=0?pS.idx:0)}
   else if(cmd.action==='pause'){document.getElementById('au').pause();pS.st='paused'}
   else if(cmd.action==='stop'){const a=document.getElementById('au');a.pause();a.currentTime=0;pS.st='stopped'}
@@ -282,27 +250,18 @@ function execCmd(cmd){
 }
 
 function updUI(){
-  const s=pS.st,o=document.getElementById('p-orb');
-  o.style.background=s==='playing'?'var(--gn)':s==='error'?'var(--rd)':'var(--t3)';
-  o.style.boxShadow=s==='playing'?'0 0 12px var(--gng)':'none';
-  document.getElementById('p-st').textContent=(pS.muted?'🔇 ':'')+s.toUpperCase();
-  const np=document.getElementById('p-np');
-  if(pS.fn){
-    np.style.display='block';
-    document.getElementById('p-song').textContent=pS.fn.replace(/\.[^/.]+$/,'');
-    document.getElementById('p-dtl').textContent=`TRACK ${pS.idx+1} OF ${playlist.length} · ${useLocal?'LOCAL':'CLOUD'}`;
-  }else np.style.display='none';
+  const s=pS.st;
+  const dot=document.getElementById('p-dot');
+  dot.style.background=s==='playing'?'#34d399':s==='error'?'#f87171':'rgba(255,255,255,.15)';
+  dot.style.boxShadow=s==='playing'?'0 0 8px rgba(52,211,153,.4)':'none';
+  document.getElementById('p-stat-text').textContent=(pS.muted?'🔇 ':'')+s.toUpperCase();
+  const np=document.getElementById('np-card');
+  if(pS.fn){np.style.display='block';document.getElementById('np-song').textContent=pS.fn.replace(/\.[^/.]+$/,'');document.getElementById('np-track').textContent=`Track ${pS.idx+1} of ${playlist.length} · ${useLocal?'LOCAL':'CLOUD'}`}
+  else np.style.display='none';
 }
-
-function repSt(){
-  const au=document.getElementById('au');
-  db.ref(`players/${pS.id}/status`).set({
-    st:pS.st,fn:pS.fn,vol:pS.vol,muted:pS.muted,src:pS.src,
-    idx:pS.idx,total:playlist.length,
-    pos:au?au.currentTime||0:0,dur:au?au.duration||0:0,
-    ts:Date.now(),err:document.getElementById('p-err')?.textContent||''
-  });
-}
+function shErr(m){document.getElementById('p-err').textContent=m;document.getElementById('p-err').style.display='block'}
+function hiErr(){document.getElementById('p-err').style.display='none'}
+function repSt(){const au=document.getElementById('au');db.ref(`players/${pS.id}/status`).set({st:pS.st,fn:pS.fn,vol:pS.vol,muted:pS.muted,src:pS.src,idx:pS.idx,total:playlist.length,pos:au?au.currentTime||0:0,dur:au?au.duration||0:0,ts:Date.now(),err:document.getElementById('p-err')?.textContent||''})}
 </script>
 </body>
 </html>
