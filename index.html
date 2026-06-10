@@ -285,7 +285,7 @@ button:focus-visible,input:focus-visible{outline:3px solid rgba(96,165,250,.42);
       <span class="foot-label" id="foot-label">PLAYING FROM LOCAL SERVER · CONTROLLED FROM IPAD</span>
     </footer>
   </div>
-  <audio id="au" preload="auto" playsinline></audio>
+  <audio id="au" preload="auto" playsinline webkit-playsinline></audio>
 </div>
 
 <script>
@@ -328,13 +328,26 @@ async function checkLocal(){
 }
 function getSongURL(song){
   if(useLocal)return LOCAL+'/'+encodeURIComponent(song.name);
-  if(song.id)return`https://www.googleapis.com/drive/v3/files/${song.id}?alt=media&key=${GAPI}`;
+  // Use drive.usercontent.google.com (works without CORS, bypasses virus scan)
+  if(song.id)return`https://drive.usercontent.google.com/download?id=${song.id}&export=download&confirm=t`;
   return'';
 }
 function getFallbackURL(song){
   if(song.id)return`https://drive.google.com/uc?export=download&id=${song.id}&confirm=t`;
   return'';
 }
+// Fetch file list directly from Google Drive API (so we always have IDs)
+async function fetchDrivePlaylist(){
+  try{
+    const url=`https://www.googleapis.com/drive/v3/files?q='${GDRIVE_FOLDER}'+in+parents+and+trashed=false&key=${GAPI}&fields=files(id,name,size)&pageSize=500`;
+    const r=await fetch(url);
+    if(!r.ok)return null;
+    const d=await r.json();
+    const AX=['mp3','wav','ogg','flac','aac','m4a','wma','opus'];
+    return(d.files||[]).filter(f=>{const ext=(f.name.split('.').pop()||'').toLowerCase();return AX.includes(ext)}).sort((a,b)=>a.name.localeCompare(b.name)).map((f,i)=>({id:f.id,name:f.name,size:parseInt(f.size)||0,index:i}));
+  }catch(e){console.error('Drive list error:',e);return null}
+}
+const GDRIVE_FOLDER="13KGisCtqNCWuulbARBN0ufF3M-6UdC85";
 function modeLabel(){return pS.src==='live'?'LIVE':(useLocal?'LOCAL':'CLOUD')}
 function updMode(){const mode=document.getElementById('p-mode');if(!mode)return;const label=modeLabel();mode.textContent=label;mode.className='p-mode-tag '+(label==='LIVE'?'live':label==='LOCAL'?'local':'cloud');const foot=document.getElementById('foot-label');if(foot)foot.textContent=`PLAYING FROM ${label==='LOCAL'?'LOCAL SERVER':label==='CLOUD'?'GOOGLE DRIVE':'LIVE SOURCE'} · CONTROLLED FROM IPAD`}
 
@@ -374,8 +387,40 @@ async function startPlayer(id){
   au.onplaying=()=>hiErr();
   au.onwaiting=()=>shErr('BUFFERING…');
 
-  db.ref('playlist').on('value',s=>{const pl=s.val();if(!pl)return;const arr=Array.isArray(pl)?pl:Object.values(pl||{});playlist=arr.filter(Boolean).map((x,i)=>({...x,index:i}));renderPL();
-    if(pS.st==='standby'&&playlist.length){if(useLocal)playSong(0);else shErr('TAP ▶ OR A SONG TO START')}});
+  // Fetch playlist — get file IDs directly from Google Drive (Pi sync removes IDs)
+  const drivePL=await fetchDrivePlaylist();
+  if(drivePL&&drivePL.length){
+    playlist=drivePL;
+    console.log('Loaded '+playlist.length+' songs from Google Drive with IDs');
+    renderPL();
+    if(pS.st==='standby'&&playlist.length){
+      if(useLocal)playSong(0);
+      else shErr('TAP ▶ OR A SONG TO START');
+    }
+  }
+  // Also listen to Firebase playlist for updates (merge IDs if missing)
+  db.ref('playlist').on('value',s=>{
+    const pl=s.val();if(!pl)return;
+    const arr=Array.isArray(pl)?pl:Object.values(pl||{});
+    const fbList=arr.filter(Boolean).map((x,i)=>({...x,index:i}));
+    // If Firebase playlist has IDs, use it; otherwise keep Drive-fetched list
+    if(fbList.length&&fbList[0].id){
+      playlist=fbList;
+    }else if(!drivePL||!drivePL.length){
+      // No Drive list and Firebase has no IDs — use names at least
+      playlist=fbList;
+    }
+    // Merge: if Drive list has IDs but Firebase doesn't, map IDs by name
+    if(drivePL&&drivePL.length&&fbList.length&&!fbList[0].id){
+      const idMap={};drivePL.forEach(s=>{idMap[s.name]=s.id});
+      playlist=fbList.map(s=>({...s,id:idMap[s.name]||s.id}));
+    }
+    renderPL();
+    if(pS.st==='standby'&&playlist.length&&!drivePL){
+      if(useLocal)playSong(0);
+      else shErr('TAP ▶ OR A SONG TO START');
+    }
+  });
   db.ref(`players/${id}/command`).on('value',s=>{const cmd=s.val();if(cmd)execCmd(cmd)});
   // Listen for broadcast availability — auto-connect if in LIVE mode
   db.ref(`players/${id}/broadcast_available`).on('value',s=>{
