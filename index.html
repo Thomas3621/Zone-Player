@@ -510,6 +510,30 @@ async function downloadSong(song,onProgress){
 }
 function modeLabel(){return useLocal?'LOCAL':'CLOUD'}
 function updMode(){const mode=document.getElementById('p-mode');if(!mode)return;const label=modeLabel();mode.textContent=label;mode.className='p-mode-tag '+(label==='LOCAL'?'local':'cloud');const foot=document.getElementById('foot-label');if(foot)foot.textContent=`PLAYING FROM ${label==='LOCAL'?'LOCAL SERVER':'GOOGLE DRIVE'} · CONTROLLED FROM IPAD`}
+function shErr(m){const e=document.getElementById('p-err');if(e){e.textContent=m;e.style.display='block'}}
+function hiErr(){const e=document.getElementById('p-err');if(e)e.style.display='none'}
+function updUI(){
+  const s=pS.st;
+  const dot=document.getElementById('p-dot');
+  if(dot){
+    dot.style.background=s==='playing'?'#34c759':s==='error'?'#ff3b30':s==='loading'?'#ff9f0a':'#d1d5db';
+    dot.style.boxShadow=s==='playing'?'0 0 8px rgba(52,199,89,.4)':'none';
+  }
+  const statEl=document.getElementById('p-stat-text');
+  if(statEl)statEl.textContent=(pS.muted?'🔇 ':'')+s.toUpperCase();
+  updMode();
+  const np=document.getElementById('np-card');
+  if(np){
+    if(pS.fn){
+      np.style.display='block';
+      const song=document.getElementById('np-song');if(song)song.textContent=pS.fn.replace(/\.[^/.]+$/,'');
+      const trk=document.getElementById('np-track');if(trk){
+        const cached=pS.idx>=0&&playlist[pS.idx]&&blobURLs[playlist[pS.idx].id];
+        trk.textContent=`Track ${pS.idx+1} of ${playlist.length} · ${modeLabel()}${cached?' · CACHED':''}`;
+      }
+    }else{np.style.display='none'}
+  }
+}
 
 async function startPlayer(id){
   pS={id,vol:.7,st:'standby',fn:'',idx:-1,muted:false,src:'local'};
