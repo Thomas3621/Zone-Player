@@ -181,6 +181,74 @@ button:focus-visible,input:focus-visible{outline:3px solid rgba(96,165,250,.42);
   .vol-row{height:58px;padding:0 12px}.vol-row input[type=range]::-webkit-slider-thumb{width:28px;height:28px}.vol-num{font-size:14px;width:36px}
   .queue-card{max-height:none;min-height:300px}.footer{font-size:8px;letter-spacing:.9px;justify-content:flex-start;overflow-x:auto}
 }
+/* ── Colorful Professional Theme (matches Controller) ── */
+html,body{background:#060b18!important}
+body::before{background:
+  radial-gradient(circle at 5% 5%,rgba(236,72,153,.16),transparent 30%),
+  radial-gradient(circle at 95% 10%,rgba(56,189,248,.14),transparent 28%),
+  radial-gradient(circle at 30% 90%,rgba(168,85,247,.10),transparent 30%),
+  radial-gradient(circle at 70% 95%,rgba(34,211,167,.08),transparent 28%),
+  linear-gradient(145deg,#080e20 0%,#0a1428 50%,#060a16 100%)!important}
+body::after{opacity:.3!important}
+
+/* Frosted glass panels */
+.neo,.hdr,.play-panel,.sel-card{
+  background:linear-gradient(155deg,rgba(15,22,40,.9),rgba(8,13,26,.92))!important;
+  border-color:rgba(255,255,255,.08)!important;
+  box-shadow:0 20px 50px rgba(0,0,0,.45),0 1px 0 rgba(255,255,255,.03) inset!important;
+  backdrop-filter:blur(20px)!important;-webkit-backdrop-filter:blur(20px)!important}
+
+/* Colorful logo */
+.logo-icon,.sel-logo{background:linear-gradient(135deg,#ec4899,#8b5cf6,#3b82f6)!important;color:#fff!important;border:none!important;box-shadow:0 8px 28px rgba(139,92,246,.25)!important}
+.sel-title,.logo-text{font-weight:900!important}
+
+/* Zone cards — unique neon colors on select screen */
+.zone-btn:nth-child(1){border-color:rgba(239,68,68,.35)!important;box-shadow:0 0 20px rgba(239,68,68,.08),0 12px 32px rgba(0,0,0,.3)!important}
+.zone-btn:nth-child(1) .zone-badge{background:linear-gradient(135deg,#ef4444,#f97316)!important;box-shadow:0 6px 18px rgba(239,68,68,.3)!important}
+.zone-btn:nth-child(2){border-color:rgba(34,197,94,.35)!important;box-shadow:0 0 20px rgba(34,197,94,.08),0 12px 32px rgba(0,0,0,.3)!important}
+.zone-btn:nth-child(2) .zone-badge{background:linear-gradient(135deg,#22c55e,#06b6d4)!important;box-shadow:0 6px 18px rgba(34,197,94,.3)!important}
+.zone-btn:nth-child(3){border-color:rgba(234,179,8,.35)!important;box-shadow:0 0 20px rgba(234,179,8,.08),0 12px 32px rgba(0,0,0,.3)!important}
+.zone-btn:nth-child(3) .zone-badge{background:linear-gradient(135deg,#eab308,#f97316)!important;box-shadow:0 6px 18px rgba(234,179,8,.3)!important}
+.zone-btn:nth-child(4){border-color:rgba(168,85,247,.35)!important;box-shadow:0 0 20px rgba(168,85,247,.08),0 12px 32px rgba(0,0,0,.3)!important}
+.zone-btn:nth-child(4) .zone-badge{background:linear-gradient(135deg,#a855f7,#ec4899)!important;box-shadow:0 6px 18px rgba(168,85,247,.3)!important}
+
+/* Player panel — neon border from zone color */
+.play-panel{backdrop-filter:blur(20px)!important;-webkit-backdrop-filter:blur(20px)!important}
+
+/* Now playing title — gradient text */
+.np-title{background:linear-gradient(135deg,#f0abfc,#818cf8,#38bdf8)!important;-webkit-background-clip:text!important;-webkit-text-fill-color:transparent!important;background-clip:text!important}
+
+/* Transport buttons — colorful active states */
+.transport-btn.play:active{background:linear-gradient(135deg,rgba(34,197,94,.15),rgba(6,182,212,.1))!important;border-color:#22c55e!important;color:#22c55e!important}
+.transport-btn.pause:active{background:linear-gradient(135deg,rgba(245,158,11,.15),rgba(234,179,8,.1))!important;border-color:#f59e0b!important;color:#f59e0b!important}
+.transport-btn.skip:active{background:linear-gradient(135deg,rgba(139,92,246,.15),rgba(168,85,247,.1))!important;border-color:#a855f7!important;color:#a855f7!important}
+
+/* Progress bar — rainbow gradient */
+.progress-fill,.np-bar-fg{background:linear-gradient(90deg,#ec4899,#a855f7,#3b82f6,#22c55e)!important}
+
+/* Volume slider thumb — glowing */
+.vol-range::-webkit-slider-thumb,input[type=range]::-webkit-slider-thumb{background:linear-gradient(135deg,#f0f9ff,#e0e7ff)!important;border:2px solid rgba(139,92,246,.5)!important;box-shadow:0 4px 14px rgba(0,0,0,.5),0 0 12px rgba(139,92,246,.2)!important}
+
+/* Playlist items — subtle hover glow */
+.pl-item:active,.pl-item.active{background:linear-gradient(90deg,rgba(139,92,246,.08),rgba(56,189,248,.06))!important;border-left-color:#a855f7!important}
+
+/* Mode tags — colorful */
+.p-mode-tag.local{background:rgba(34,197,94,.1)!important;color:#86efac!important;border-color:rgba(34,197,94,.2)!important}
+.p-mode-tag.cloud{background:rgba(139,92,246,.1)!important;color:#c4b5fd!important;border-color:rgba(139,92,246,.2)!important}
+.p-mode-tag.live{background:rgba(245,158,11,.1)!important;color:#fde68a!important;border-color:rgba(245,158,11,.2)!important}
+
+/* Status dot — pulsing */
+@keyframes dotPulse{0%,100%{box-shadow:0 0 0 4px rgba(34,197,94,.1),0 0 12px rgba(34,197,94,.3)}50%{box-shadow:0 0 0 6px rgba(34,197,94,.15),0 0 20px rgba(34,197,94,.5)}}
+
+/* Footer label */
+.foot-label{color:rgba(148,163,184,.3)!important}
+
+/* Connection screen */
+.conn-s{background:radial-gradient(circle at 50% 10%,rgba(139,92,246,.14),transparent 35%),#060b18!important}
+
+/* Smooth transitions */
+.zone-btn,.transport-btn,.pl-item{transition:all .2s cubic-bezier(.2,.8,.3,1)!important}
+.zone-btn:active{transform:scale(.97)!important}
 </style>
 </head>
 <body>
@@ -318,7 +386,7 @@ function buildZones(){
   IDS.forEach(id=>{
     const b=document.createElement('div');b.className='zone-card';b.style.setProperty('--zone',COL[id]);
     b.innerHTML=`<div class="zc-badge" style="background:${COL[id]}">${String(id).padStart(2,'0')}</div><div><div class="zc-name">${NM[id-1]}</div><div class="zc-sub">Zone ${id}</div></div><div class="zone-arrow">›</div>`;
-    b.onclick=()=>startPlayer(id);g.appendChild(b);
+    b.onclick=()=>{unlockAudio();startPlayer(id)};g.appendChild(b);
   });
 }
 
@@ -356,34 +424,35 @@ async function downloadSong(song,onProgress){
     if(!blobURLs[song.id])blobURLs[song.id]=URL.createObjectURL(cached.blob);
     return blobURLs[song.id];
   }
-  // Download from Google Drive
+  // Download using XMLHttpRequest (works in ALL browsers including Safari iPad)
   const urls=[
     `https://www.googleapis.com/drive/v3/files/${song.id}?alt=media&key=${GAPI}`,
     `https://drive.usercontent.google.com/download?id=${song.id}&export=download&confirm=t`
   ];
-  let resp=null;
   for(const url of urls){
     try{
-      resp=await fetch(url);
-      if(resp.ok)break;
-      resp=null;
-    }catch(e){resp=null}
+      const blobUrl=await new Promise((resolve,reject)=>{
+        const xhr=new XMLHttpRequest();
+        xhr.open('GET',url,true);
+        xhr.responseType='blob';
+        xhr.onprogress=(e)=>{if(e.lengthComputable&&onProgress)onProgress(e.loaded,e.total)};
+        xhr.onload=async()=>{
+          if(xhr.status===200&&xhr.response.size>1000){
+            const blob=xhr.response;
+            await setCache(song.id,song.name,blob);
+            blobURLs[song.id]=URL.createObjectURL(blob);
+            resolve(blobURLs[song.id]);
+          }else{reject(new Error('Bad response '+xhr.status))}
+        };
+        xhr.onerror=()=>reject(new Error('Network error'));
+        xhr.ontimeout=()=>reject(new Error('Timeout'));
+        xhr.timeout=300000; // 5 min for large files
+        xhr.send();
+      });
+      return blobUrl;
+    }catch(e){console.log('URL failed:',url.substring(0,60),e.message)}
   }
-  if(!resp||!resp.ok)throw new Error('Download failed');
-  const total=parseInt(resp.headers.get('content-length'))||song.size||0;
-  const reader=resp.body.getReader();
-  const chunks=[];let loaded=0;
-  while(true){
-    const{done,value}=await reader.read();
-    if(done)break;
-    chunks.push(value);loaded+=value.length;
-    if(onProgress)onProgress(loaded,total);
-  }
-  const blob=new Blob(chunks);
-  // Cache for next time
-  await setCache(song.id,song.name,blob);
-  blobURLs[song.id]=URL.createObjectURL(blob);
-  return blobURLs[song.id];
+  throw new Error('All download URLs failed');
 }
 function modeLabel(){return pS.src==='live'?'LIVE':(useLocal?'LOCAL':'CLOUD')}
 function updMode(){const mode=document.getElementById('p-mode');if(!mode)return;const label=modeLabel();mode.textContent=label;mode.className='p-mode-tag '+(label==='LIVE'?'live':label==='LOCAL'?'local':'cloud');const foot=document.getElementById('foot-label');if(foot)foot.textContent=`PLAYING FROM ${label==='LOCAL'?'LOCAL SERVER':label==='CLOUD'?'GOOGLE DRIVE':'LIVE SOURCE'} · CONTROLLED FROM IPAD`}
@@ -514,11 +583,11 @@ async function playSong(i){
 }
 function playNext(){playSong(pS.idx+1)}
 function playPrev(){playSong(pS.idx-1)}
-function playResume(){const au=document.getElementById('au');if(pS.st==='paused'){au.play();return}playSong(pS.idx>=0?pS.idx:0)}
+function playResume(){unlockAudio();const au=document.getElementById('au');if(pS.st==='paused'){au.play();return}playSong(pS.idx>=0?pS.idx:0)}
 function doPause(){document.getElementById('au').pause();pS.st='paused';updUI();repSt()}
 function localVol(v){pS.vol=v/100;document.getElementById('au').volume=pS.muted?0:pS.vol;document.getElementById('vol-num').textContent=v;repSt()}
 
-function renderPL(){const el=document.getElementById('p-pl'),empty=document.getElementById('queue-empty'),meta=document.getElementById('queue-meta');if(!playlist.length){el.style.display='none';if(empty)empty.style.display='block';if(meta)meta.textContent='Waiting';return}el.style.display='block';if(empty)empty.style.display='none';if(meta)meta.textContent=playlist.length+' tracks';el.innerHTML='';playlist.forEach((s,i)=>{const d=document.createElement('div');d.className='pl-item'+(i===pS.idx?' active':'');d.innerHTML=`<span class="pl-num">${String(i+1).padStart(2,'0')}</span><span class="pl-name">${esc(s.name.replace(/\.[^/.]+$/,''))}</span>`;d.onclick=()=>playSong(i);el.appendChild(d)})}
+function renderPL(){const el=document.getElementById('p-pl'),empty=document.getElementById('queue-empty'),meta=document.getElementById('queue-meta');if(!playlist.length){el.style.display='none';if(empty)empty.style.display='block';if(meta)meta.textContent='Waiting';return}el.style.display='block';if(empty)empty.style.display='none';if(meta)meta.textContent=playlist.length+' tracks';el.innerHTML='';playlist.forEach((s,i)=>{const d=document.createElement('div');d.className='pl-item'+(i===pS.idx?' active':'');d.innerHTML=`<span class="pl-num">${String(i+1).padStart(2,'0')}</span><span class="pl-name">${esc(s.name.replace(/\.[^/.]+$/,''))}</span>`;d.onclick=()=>{unlockAudio();playSong(i)};el.appendChild(d)})}
 
 function execCmd(cmd){
   if(cmd.ts===lastTs)return;lastTs=cmd.ts;
@@ -633,6 +702,23 @@ function updUI(){
 }
 function shErr(m){const e=document.getElementById('p-err');e.textContent=m;e.style.display='flex'}
 function hiErr(){document.getElementById('p-err').style.display='none'}
+
+// ═══ Safari/iOS Audio Unlock ═══
+let audioUnlocked=false;
+function unlockAudio(){
+  if(audioUnlocked)return;
+  const au=document.getElementById('au');
+  // Play tiny silent audio to unlock WebAudio on iOS
+  au.src='data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4Ljc2LjEwMAAAAAAAAAAAAAAA//tQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWGluZwAAAA8AAAACAAABhgC7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7//////////////////////////////////////////////////////////////////8AAAAATGF2YzU4LjEzAAAAAAAAAAAAAAAAJAAAAAAAAAAAAYYoRBqmAAAAAAD/+1DEAAAH+ANoUAAAIiWg7koYAABEiIlosIAgGDmef/E4IA+XB8H/KBAGB///5cHwfB8uD5///y4OAgCAPg+XB8H///8QBjk/l/8uD5////+D4f///8uD///Lg//ygT/Lg/rn/Lg+D4P/5QJ/6gT/Lg+D7///+oCf+fB8HwfB8H/zygIAgCAIA+D4Pg+D4P/8oCAIAgCAIbB8Hw==';
+  au.volume=0.01;
+  const p=au.play();
+  if(p)p.then(()=>{au.pause();au.currentTime=0;au.volume=pS.vol;audioUnlocked=true;console.log('Audio unlocked for Safari')}).catch(()=>{});
+  // Also try AudioContext unlock
+  try{const ctx=new(window.AudioContext||window.webkitAudioContext)();const osc=ctx.createOscillator();osc.connect(ctx.destination);osc.start();osc.stop(ctx.currentTime+0.01);ctx.close()}catch(e){}
+}
+// Unlock on ANY user interaction
+document.addEventListener('touchstart',function(){unlockAudio()},{once:true});
+document.addEventListener('click',function(){unlockAudio()},{once:true});
 function repSt(){if(!db||!pS.id)return;const au=document.getElementById('au');db.ref(`players/${pS.id}/status`).set({st:pS.st,fn:pS.fn,vol:pS.vol,muted:pS.muted,src:pS.src,idx:pS.idx,total:playlist.length,pos:au?au.currentTime||0:0,dur:au?au.duration||0:0,ts:Date.now(),err:document.getElementById('p-err')?.textContent||''})}
 </script>
 </body>
