@@ -328,26 +328,63 @@ async function checkLocal(){
 }
 function getSongURL(song){
   if(useLocal)return LOCAL+'/'+encodeURIComponent(song.name);
-  // Use drive.usercontent.google.com (works without CORS, bypasses virus scan)
-  if(song.id)return`https://drive.usercontent.google.com/download?id=${song.id}&export=download&confirm=t`;
-  return'';
+  return''; // cloud mode uses download-then-play
 }
-function getFallbackURL(song){
-  if(song.id)return`https://drive.google.com/uc?export=download&id=${song.id}&confirm=t`;
-  return'';
-}
-// Fetch file list directly from Google Drive API (so we always have IDs)
+// Fetch file list directly from Google Drive API
 async function fetchDrivePlaylist(){
   try{
     const url=`https://www.googleapis.com/drive/v3/files?q='${GDRIVE_FOLDER}'+in+parents+and+trashed=false&key=${GAPI}&fields=files(id,name,size)&pageSize=500`;
-    const r=await fetch(url);
-    if(!r.ok)return null;
-    const d=await r.json();
+    const r=await fetch(url);if(!r.ok)return null;const d=await r.json();
     const AX=['mp3','wav','ogg','flac','aac','m4a','wma','opus'];
     return(d.files||[]).filter(f=>{const ext=(f.name.split('.').pop()||'').toLowerCase();return AX.includes(ext)}).sort((a,b)=>a.name.localeCompare(b.name)).map((f,i)=>({id:f.id,name:f.name,size:parseInt(f.size)||0,index:i}));
   }catch(e){console.error('Drive list error:',e);return null}
 }
 const GDRIVE_FOLDER="13KGisCtqNCWuulbARBN0ufF3M-6UdC85";
+
+// ═══ IndexedDB Cache — download once, play forever ═══
+const IDB_NAME='ZoneAudioCache',IDB_VER=1;
+function openIDB(){return new Promise((res,rej)=>{const r=indexedDB.open(IDB_NAME,IDB_VER);r.onupgradeneeded=e=>{if(!e.target.result.objectStoreNames.contains('songs'))e.target.result.createObjectStore('songs',{keyPath:'id'})};r.onsuccess=e=>res(e.target.result);r.onerror=e=>rej(e.target.error)})}
+async function getCached(id){try{const db2=await openIDB();return new Promise(r=>{const tx=db2.transaction('songs','readonly');const st=tx.objectStore('songs');const q=st.get(id);q.onsuccess=()=>r(q.result||null);q.onerror=()=>r(null)})}catch{return null}}
+async function setCache(id,name,blob){try{const db2=await openIDB();return new Promise(r=>{const tx=db2.transaction('songs','readwrite');tx.objectStore('songs').put({id,name,blob,ts:Date.now()});tx.oncomplete=()=>r(true);tx.onerror=()=>r(false)})}catch{return false}}
+let blobURLs={};
+
+async function downloadSong(song,onProgress){
+  // Check cache first
+  const cached=await getCached(song.id);
+  if(cached&&cached.blob){
+    console.log('Playing from cache:',song.name);
+    if(!blobURLs[song.id])blobURLs[song.id]=URL.createObjectURL(cached.blob);
+    return blobURLs[song.id];
+  }
+  // Download from Google Drive
+  const urls=[
+    `https://www.googleapis.com/drive/v3/files/${song.id}?alt=media&key=${GAPI}`,
+    `https://drive.usercontent.google.com/download?id=${song.id}&export=download&confirm=t`
+  ];
+  let resp=null;
+  for(const url of urls){
+    try{
+      resp=await fetch(url);
+      if(resp.ok)break;
+      resp=null;
+    }catch(e){resp=null}
+  }
+  if(!resp||!resp.ok)throw new Error('Download failed');
+  const total=parseInt(resp.headers.get('content-length'))||song.size||0;
+  const reader=resp.body.getReader();
+  const chunks=[];let loaded=0;
+  while(true){
+    const{done,value}=await reader.read();
+    if(done)break;
+    chunks.push(value);loaded+=value.length;
+    if(onProgress)onProgress(loaded,total);
+  }
+  const blob=new Blob(chunks);
+  // Cache for next time
+  await setCache(song.id,song.name,blob);
+  blobURLs[song.id]=URL.createObjectURL(blob);
+  return blobURLs[song.id];
+}
 function modeLabel(){return pS.src==='live'?'LIVE':(useLocal?'LOCAL':'CLOUD')}
 function updMode(){const mode=document.getElementById('p-mode');if(!mode)return;const label=modeLabel();mode.textContent=label;mode.className='p-mode-tag '+(label==='LIVE'?'live':label==='LOCAL'?'local':'cloud');const foot=document.getElementById('foot-label');if(foot)foot.textContent=`PLAYING FROM ${label==='LOCAL'?'LOCAL SERVER':label==='CLOUD'?'GOOGLE DRIVE':'LIVE SOURCE'} · CONTROLLED FROM IPAD`}
 
@@ -376,13 +413,11 @@ async function startPlayer(id){
   au.onpause=()=>{if(!au.ended){pS.st='paused';updUI();repSt()}};
   au.onended=()=>playNext();
   au.onerror=()=>{
-    if(!useLocal&&!triedFallback&&pS.idx>=0&&playlist[pS.idx]){
-      const fb=getFallbackURL(playlist[pS.idx]);
-      if(fb){console.log('Primary failed, trying fallback...');triedFallback=true;au.src=fb;au.play().catch(()=>{});return}
-    }
-    if(pS.idx===lastErrIdx){errCount++}else{errCount=1;lastErrIdx=pS.idx}
-    if(errCount>=playlist.length){pS.st='error';shErr('ALL FILES FAILED — Check Drive sharing or use server.py');updUI();repSt();return}
-    pS.st='error';shErr('SKIPPING…');updUI();repSt();setTimeout(()=>{triedFallback=false;playNext()},2000);
+    if(pS.st==='loading')return; // download in progress, ignore
+    errCount++;
+    if(errCount>=playlist.length){pS.st='error';shErr('PLAYBACK FAILED');updUI();repSt();return}
+    pS.st='error';shErr('ERROR — SKIPPING…');updUI();repSt();
+    setTimeout(()=>playNext(),2000);
   };
   au.onplaying=()=>hiErr();
   au.onwaiting=()=>shErr('BUFFERING…');
@@ -432,7 +467,51 @@ async function startPlayer(id){
   uiTimer=setInterval(()=>{const au=document.getElementById('au');if(au&&au.duration){document.getElementById('np-ct').textContent=fmtT(au.currentTime);document.getElementById('np-dt').textContent=fmtT(au.duration);document.getElementById('np-fg').style.width=(au.currentTime/au.duration*100)+'%'}},1000);
 }
 
-function playSong(i){if(!playlist.length)return;if(i<0)i=playlist.length-1;if(i>=playlist.length)i=0;pS.idx=i;pS.fn=playlist[i].name;triedFallback=false;const au=document.getElementById('au');au.srcObject=null;au.src=getSongURL(playlist[i]);au.playbackRate=1;au.volume=pS.muted?0:pS.vol;au.play().then(()=>{pS.st='playing';errCount=0}).catch(()=>{pS.st='ready';shErr('TAP ▶ TO PLAY')});updUI();repSt();renderPL()}
+async function playSong(i){
+  if(!playlist.length)return;
+  if(i<0)i=playlist.length-1;if(i>=playlist.length)i=0;
+  pS.idx=i;pS.fn=playlist[i].name;triedFallback=false;
+  const au=document.getElementById('au');
+  au.srcObject=null;
+
+  if(useLocal){
+    // Local mode — direct URL, instant play
+    au.src=LOCAL+'/'+encodeURIComponent(playlist[i].name);
+    au.playbackRate=1;au.volume=pS.muted?0:pS.vol;
+    au.play().then(()=>{pS.st='playing';errCount=0}).catch(()=>{pS.st='ready';shErr('TAP ▶ TO PLAY')});
+  }else{
+    // Cloud mode — download to cache, then play from blob
+    if(!playlist[i].id){pS.st='error';shErr('NO FILE ID — Tap Sync on controller');updUI();repSt();return}
+    // Check if already cached (instant play)
+    if(blobURLs[playlist[i].id]){
+      au.src=blobURLs[playlist[i].id];
+      au.playbackRate=1;au.volume=pS.muted?0:pS.vol;
+      au.play().then(()=>{pS.st='playing';errCount=0}).catch(()=>{pS.st='ready';shErr('TAP ▶ TO PLAY')});
+    }else{
+      // Download with progress
+      pS.st='loading';
+      const sz=playlist[i].size;
+      shErr(`DOWNLOADING: ${playlist[i].name}${sz?' ('+Math.round(sz/1048576)+'MB)':''}`);
+      updUI();repSt();
+      try{
+        const url=await downloadSong(playlist[i],(loaded,total)=>{
+          const pct=total?Math.round(loaded/total*100):0;
+          shErr(`DOWNLOADING: ${pct}% · ${Math.round(loaded/1048576)}MB`);
+        });
+        hiErr();
+        au.src=url;au.playbackRate=1;au.volume=pS.muted?0:pS.vol;
+        au.play().then(()=>{pS.st='playing';errCount=0}).catch(()=>{pS.st='ready';shErr('TAP ▶ TO PLAY')});
+      }catch(e){
+        console.error('Download failed:',e);
+        errCount++;
+        if(errCount>=playlist.length){pS.st='error';shErr('ALL DOWNLOADS FAILED — Run server.py locally');updUI();repSt();return}
+        pS.st='error';shErr('DOWNLOAD FAILED — SKIPPING…');updUI();repSt();
+        setTimeout(()=>playNext(),2000);return;
+      }
+    }
+  }
+  updUI();repSt();renderPL();
+}
 function playNext(){playSong(pS.idx+1)}
 function playPrev(){playSong(pS.idx-1)}
 function playResume(){const au=document.getElementById('au');if(pS.st==='paused'){au.play();return}playSong(pS.idx>=0?pS.idx:0)}
@@ -542,12 +621,14 @@ async function connectBcast(pid){
 function updUI(){
   const s=pS.st;
   const dot=document.getElementById('p-dot');
-  dot.style.background=s==='playing'?'#22c55e':s==='error'?'#ef4444':s==='paused'||s==='ready'?'#f59e0b':'rgba(255,255,255,.18)';
-  dot.style.boxShadow=s==='playing'?'0 0 0 5px rgba(34,197,94,.12),0 0 14px rgba(34,197,94,.70)':s==='error'?'0 0 0 5px rgba(239,68,68,.12),0 0 14px rgba(239,68,68,.65)':'none';
+  dot.style.background=s==='playing'?'#22c55e':s==='error'?'#ef4444':s==='loading'?'#f59e0b':s==='paused'||s==='ready'?'#f59e0b':'rgba(255,255,255,.18)';
+  dot.style.boxShadow=s==='playing'?'0 0 0 5px rgba(34,197,94,.12),0 0 14px rgba(34,197,94,.70)':s==='error'?'0 0 0 5px rgba(239,68,68,.12),0 0 14px rgba(239,68,68,.65)':s==='loading'?'0 0 0 5px rgba(245,158,11,.12),0 0 14px rgba(245,158,11,.65)':'none';
   document.getElementById('p-stat-text').textContent=(pS.muted?'🔇 ':'')+s.toUpperCase();
   updMode();
   const np=document.getElementById('np-card');
-  if(pS.fn){np.style.display='block';document.getElementById('np-song').textContent=pS.fn.replace(/\.[^/.]+$/,'');document.getElementById('np-track').textContent=`Track ${pS.idx+1} of ${playlist.length} · ${modeLabel()}`}
+  if(pS.fn){np.style.display='block';document.getElementById('np-song').textContent=pS.fn.replace(/\.[^/.]+$/,'');
+    const cached=pS.idx>=0&&playlist[pS.idx]&&blobURLs[playlist[pS.idx].id];
+    document.getElementById('np-track').textContent=`Track ${pS.idx+1} of ${playlist.length} · ${modeLabel()}${!useLocal&&cached?' · CACHED':''}`}
   else np.style.display='none';
 }
 function shErr(m){const e=document.getElementById('p-err');e.textContent=m;e.style.display='flex'}
