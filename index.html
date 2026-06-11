@@ -182,51 +182,86 @@ button:focus-visible,input:focus-visible{outline:3px solid rgba(96,165,250,.42);
 }
 /* ── Apple Clean Light Theme ── */
 body{background:#f5f5f7!important;color:#1d1d1f!important}
-.screen{background:#f5f5f7!important}
-.neo,.hdr,.play-panel,.sel-card,.conn-s{background:#f5f5f7!important}
-.play-panel{background:#fff!important;border:0.5px solid rgba(0,0,0,.08)!important;box-shadow:0 2px 16px rgba(0,0,0,.06)!important}
-.sel-card{border-color:rgba(0,0,0,.06)!important}
-.zone-btn{background:#fff!important;border:0.5px solid rgba(0,0,0,.08)!important;box-shadow:0 1px 4px rgba(0,0,0,.04)!important}
-.zone-btn:nth-child(1){border-color:rgba(239,68,68,.2)!important}
-.zone-btn:nth-child(2){border-color:rgba(52,199,89,.2)!important}
-.zone-btn:nth-child(3){border-color:rgba(255,159,10,.2)!important}
-.zone-btn:nth-child(4){border-color:rgba(139,92,246,.2)!important}
-.zone-btn:nth-child(5){border-color:rgba(0,122,255,.2)!important}
-.zone-btn:active{background:#f9fafb!important}
-.zone-badge{box-shadow:0 2px 8px rgba(0,0,0,.1)!important}
-.zc-name{color:#1d1d1f!important}
-.zc-sub{color:#86868b!important}
-.sel-logo{background:#007aff!important;box-shadow:0 4px 12px rgba(0,122,255,.15)!important}
-.sel-title{color:#1d1d1f!important}
-.brand-dot{background:#34c759!important;box-shadow:0 0 8px rgba(52,199,89,.3)!important}
-.conn-msg{color:#86868b!important}
-.p-title{color:#1d1d1f!important}
-.p-stat{color:#86868b!important}
+body::before,body::after{display:none!important}
+.screen,.select-screen,.player-screen,.conn-s{background:#f5f5f7!important}
+.topbar,.hdr,header{background:#fff!important;border:0.5px solid rgba(0,0,0,.08)!important;box-shadow:0 1px 4px rgba(0,0,0,.04)!important;color:#1d1d1f!important}
+.neo,.play-panel,.select-card,.player-card,.queue-card{background:#fff!important;border:0.5px solid rgba(0,0,0,.08)!important;box-shadow:0 2px 12px rgba(0,0,0,.06)!important}
+.select-main{background:#f5f5f7!important}
+/* ZoneAudio Player title — blue glow */
+.brand-title,.select-title,.player-brand{color:#007aff!important;text-shadow:0 0 20px rgba(0,122,255,.25),0 0 40px rgba(0,122,255,.1)!important}
+.brand-sub,.select-desc,.select-eyebrow,.select-hint{color:#86868b!important}
+.brand-dot,.status-dot{background:#34c759!important;box-shadow:0 0 8px rgba(52,199,89,.3)!important}
+.conn-msg,.conn-text{color:#86868b!important}
+.conn-msg.ok{color:#34c759!important}
+.conn-msg.err{color:#ff3b30!important}
+.hdr-time{color:#86868b!important}
+
+/* Zone cards — clean clickable */
+.zone-card{
+  position:relative!important;
+  background:#fff!important;
+  border:1.5px solid rgba(0,122,255,.18)!important;
+  box-shadow:0 2px 8px rgba(0,0,0,.05)!important;
+  color:#1d1d1f!important;
+  cursor:pointer!important;
+  border-radius:16px!important;
+  -webkit-tap-highlight-color:rgba(0,122,255,.1)!important}
+.zone-card::before,.zone-card::after{content:none!important}
+.zone-card:nth-child(1){border-left:4px solid #ef4444!important}
+.zone-card:nth-child(2){border-left:4px solid #22c55e!important}
+.zone-card:nth-child(3){border-left:4px solid #eab308!important}
+.zone-card:nth-child(4){border-left:4px solid #8b5cf6!important}
+.zone-card:nth-child(5){border-left:4px solid #007aff!important}
+.zone-card:active{background:#f0f5ff!important;transform:scale(.97)!important;border-color:rgba(0,122,255,.4)!important}
+.zone-badge,.zc-badge{box-shadow:0 3px 10px rgba(0,0,0,.12)!important;border-radius:12px!important}
+.zc-name,.zone-name{color:#1d1d1f!important;font-weight:700!important}
+.zc-sub,.zone-sub{color:#86868b!important}
+.zone-arrow{background:rgba(0,122,255,.08)!important;color:#007aff!important}
+
+/* Logo */
+.sel-logo,.logo-icon,.brand-icon{background:#007aff!important;color:#fff!important;box-shadow:0 4px 14px rgba(0,122,255,.2)!important}
+
+/* Player screen */
+.player-card{background:#fff!important;overflow:hidden!important}
+.player-card::before{display:none!important}
+.p-icon,.player-icon{box-shadow:0 4px 14px rgba(0,0,0,.1)!important}
+.p-title,.player-title{color:#1d1d1f!important}
+.p-sub,.p-stat{color:#86868b!important}
 .p-dot{background:#d1d5db!important}
 .p-mode-tag.local{background:#f0fdf4!important;color:#16a34a!important;border-color:rgba(52,199,89,.15)!important}
 .p-mode-tag.cloud{background:#f0f5ff!important;color:#007aff!important;border-color:rgba(0,122,255,.12)!important}
-.np-card,.np-box{background:#f9fafb!important;border:0.5px solid rgba(0,0,0,.06)!important;box-shadow:none!important}
-.np-title,.np-song{color:#1d1d1f!important}
-.np-sub,.np-track{color:#86868b!important}
-.np-bar-bg,.progress-bg{background:#e5e5ea!important}
-.np-bar-fg,.progress-fill{background:#007aff!important}
-.np-bar-t{color:#86868b!important}
-.transport-btn,.tr-btn{background:#fff!important;border:0.5px solid rgba(0,0,0,.08)!important;color:#86868b!important;box-shadow:0 1px 3px rgba(0,0,0,.04)!important}
-.transport-btn:active,.tr-btn:active{background:#f2f3f5!important}
+
+/* Now playing */
+.np-card,.np-box,.now-card{background:#f9fafb!important;border:0.5px solid rgba(0,0,0,.06)!important;box-shadow:none!important;border-left:3px solid #007aff!important}
+.np-title,.np-song,.now-title{color:#1d1d1f!important}
+.np-sub,.np-track,.now-sub{color:#86868b!important}
+.np-bar-bg,.progress-bg,.np-bar{background:#e5e5ea!important}
+.np-bar-fg,.progress-fill,.np-fg{background:#007aff!important}
+.np-bar-t,.np-ct,.np-dt,.np-time{color:#86868b!important}
+
+/* Transport */
+.transport-btn,.tr-btn,.ctl-btn{background:#fff!important;border:0.5px solid rgba(0,0,0,.08)!important;color:#86868b!important;box-shadow:0 1px 3px rgba(0,0,0,.04)!important}
+.transport-btn:active,.tr-btn:active,.ctl-btn:active{background:#f2f3f5!important}
 .transport-btn.play:active,.tr-btn.play:active{color:#34c759!important;border-color:rgba(52,199,89,.3)!important;background:#f0fdf4!important}
 .transport-btn.pause:active,.tr-btn.pause:active{color:#ff9f0a!important;border-color:rgba(255,159,10,.3)!important;background:#fffbeb!important}
-.transport-btn.sk:active,.tr-btn.sk:active{color:#007aff!important;border-color:rgba(0,122,255,.3)!important}
-.vol-row input[type=range],input[type=range]{background:#e5e5ea!important}
-.vol-row input[type=range]::-webkit-slider-thumb,input[type=range]::-webkit-slider-thumb{background:#fff!important;border:2px solid #007aff!important;box-shadow:0 1px 4px rgba(0,0,0,.12)!important}
-.vol-ico,.vol-num{color:#86868b!important}
-.playlist,.pl-wrap{background:#f9fafb!important;border:0.5px solid rgba(0,0,0,.06)!important}
-.pl-item{color:#1d1d1f!important;border-bottom-color:rgba(0,0,0,.04)!important}
-.pl-item:active{background:#f2f3f5!important}
-.pl-item.active{background:#f0f5ff!important;border-left-color:#007aff!important}
-.pl-num{color:#86868b!important}
-.err-msg{color:#ff3b30!important}
-.foot-label{color:#c7c7cc!important}
-.p-icon{box-shadow:0 4px 12px rgba(0,0,0,.1)!important}
+.transport-btn.sk:active,.tr-btn.sk:active,.transport-btn.skip:active{color:#007aff!important;border-color:rgba(0,122,255,.3)!important;background:#f0f5ff!important}
+
+/* Volume */
+input[type=range]{background:#e5e5ea!important}
+input[type=range]::-webkit-slider-thumb{background:#fff!important;border:2px solid #007aff!important;box-shadow:0 1px 4px rgba(0,0,0,.12)!important}
+.vol-ico,.vol-num,.vol-label,.vol-val{color:#86868b!important}
+
+/* Playlist / Queue */
+.playlist,.pl-wrap,.queue,.queue-card{background:#f9fafb!important;border:0.5px solid rgba(0,0,0,.06)!important}
+.pl-item,.queue-item{color:#1d1d1f!important;border-bottom-color:rgba(0,0,0,.04)!important}
+.pl-item:active,.queue-item:active{background:#f2f3f5!important}
+.pl-item.active,.queue-item.active{background:#f0f5ff!important;border-left:3px solid #007aff!important;color:#007aff!important}
+.pl-num,.queue-num{color:#86868b!important}
+.queue-title,.queue-head,.queue-meta,.queue-empty{color:#86868b!important}
+
+/* Error and footer */
+.err-msg,.p-err{color:#ff3b30!important;background:rgba(255,59,48,.06)!important;border-radius:8px!important;padding:6px 10px!important}
+.foot-label,.footer-text{color:#c7c7cc!important}
 </style>
 </head>
 <body>
@@ -346,6 +381,21 @@ let errCount=0,lastErrIdx=-1,triedFallback=false;
 
 function esc(s){const d=document.createElement('div');d.textContent=s;return d.innerHTML}
 function fmtT(s){if(!s||!isFinite(s))return'0:00';const m=Math.floor(s/60),ss=Math.floor(s%60);return m+':'+(ss<10?'0':'')+ss}
+
+// iOS/Safari audio unlock — play silent clip on first interaction
+let audioUnlocked=false;
+function unlockAudio(){
+  if(audioUnlocked)return;
+  try{
+    const au=document.getElementById('au');
+    au.src='data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4Ljc2LjEwMAAAAAAAAAAAAAAA//tQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWGluZwAAAA8AAAACAAABhgC7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7//////////////////////////////////////////////////////////////////8AAAAATGF2YzU4LjEzAAAAAAAAAAAAAAAAJAAAAAAAAAAAAYYoRBqmAAAAAAD/+1DEAAAH+ANoUAAAIiWg7koYAABEiIlosIAgGDmef/E4IA+XB8H/KBAGB///5cHwfB8uD5///y4OAgCAPg+XB8H///8QBjk/l/8uD5////+D4f///8uD///Lg//ygT/Lg/rn/Lg+D4P/5QJ/6gT/Lg+D7///+oCf+fB8HwfB8H/zygIAgCAIA+D4Pg+D4P/8oCAIAgCAIbB8Hw==';
+    au.volume=0.01;
+    const p=au.play();
+    if(p)p.then(()=>{au.pause();au.currentTime=0;au.volume=pS.vol;audioUnlocked=true;console.log('Audio unlocked')}).catch(()=>{});
+  }catch(e){}
+}
+document.addEventListener('touchstart',function(){unlockAudio()},{once:true});
+document.addEventListener('click',function(){unlockAudio()},{once:true});
 function tickClock(){const t=new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});['clock-sel','clock-play'].forEach(id=>{const e=document.getElementById(id);if(e)e.textContent=t})}
 setInterval(tickClock,1000);tickClock();
 
@@ -359,12 +409,22 @@ db.ref('_ping').set(Date.now()).then(()=>{
 }).catch(e=>{const conn=document.getElementById('conn');conn.textContent='✗ '+e.message;conn.classList.add('err')});
 
 function buildZones(){
-  const g=document.getElementById('zg');g.innerHTML='';
+  const g=document.getElementById('zg');
+  if(!g)return;
+  g.innerHTML='';
   IDS.forEach(id=>{
-    const b=document.createElement('div');b.className='zone-card';b.style.setProperty('--zone',COL[id]);
+    const b=document.createElement('div');
+    b.className='zone-card';
+    b.setAttribute('role','button');
+    b.setAttribute('tabindex','0');
     b.innerHTML=`<div class="zc-badge" style="background:${COL[id]}">${String(id).padStart(2,'0')}</div><div><div class="zc-name">${NM[id-1]}</div><div class="zc-sub">Zone ${id}</div></div><div class="zone-arrow">›</div>`;
-    b.onclick=()=>{unlockAudio();startPlayer(id)};g.appendChild(b);
+    b.addEventListener('click',function(e){
+      try{unlockAudio()}catch(ex){}
+      startPlayer(id);
+    });
+    g.appendChild(b);
   });
+  console.log('Built '+IDS.length+' zone cards');
 }
 
 async function checkLocal(){
