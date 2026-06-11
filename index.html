@@ -355,6 +355,7 @@ input[type=range]::-webkit-slider-thumb{background:#fff!important;border:2px sol
       <aside class="queue-card">
         <div class="queue-head">
           <div class="queue-title">Playlist</div>
+          <button id="sync-btn" onclick="playerSync()" style="padding:6px 14px;border-radius:8px;border:0.5px solid rgba(0,122,255,.2);background:rgba(0,122,255,.06);color:#007aff;font-size:11px;font-weight:600;cursor:pointer">↻ Sync</button>
           <div class="queue-meta" id="queue-meta">Waiting</div>
         </div>
         <div class="playlist" id="p-pl" style="display:none"></div>
@@ -438,13 +439,53 @@ function getSongURL(song){
 // Fetch file list directly from Google Drive API
 async function fetchDrivePlaylist(){
   try{
+    console.log('Fetching playlist from Google Drive...');
     const url=`https://www.googleapis.com/drive/v3/files?q='${GDRIVE_FOLDER}'+in+parents+and+trashed=false&key=${GAPI}&fields=files(id,name,size)&pageSize=500`;
-    const r=await fetch(url);if(!r.ok)return null;const d=await r.json();
+    const r=await fetch(url);
+    if(!r.ok){console.error('Drive API error:',r.status,r.statusText);shErr('DRIVE SYNC FAILED ('+r.status+') — tap Sync on controller');return null}
+    const d=await r.json();
+    if(d.error){console.error('Drive API error:',d.error.message);shErr('DRIVE ERROR: '+d.error.message);return null}
     const AX=['mp3','wav','ogg','flac','aac','m4a','wma','opus'];
-    return(d.files||[]).filter(f=>{const ext=(f.name.split('.').pop()||'').toLowerCase();return AX.includes(ext)}).sort((a,b)=>a.name.localeCompare(b.name)).map((f,i)=>({id:f.id,name:f.name,size:parseInt(f.size)||0,index:i}));
-  }catch(e){console.error('Drive list error:',e);return null}
+    const files=(d.files||[]).filter(f=>{const ext=(f.name.split('.').pop()||'').toLowerCase();return AX.includes(ext)}).sort((a,b)=>a.name.localeCompare(b.name)).map((f,i)=>({id:f.id,name:f.name,size:parseInt(f.size)||0,index:i}));
+    console.log('Drive returned '+files.length+' audio files');
+    if(!files.length)shErr('NO AUDIO FILES IN DRIVE FOLDER');
+    return files;
+  }catch(e){console.error('Drive fetch error:',e);shErr('DRIVE OFFLINE — tap Sync on controller');return null}
 }
 const GDRIVE_FOLDER="13KGisCtqNCWuulbARBN0ufF3M-6UdC85";
+
+// Player sync button
+async function playerSync(){
+  const btn=document.getElementById('sync-btn');
+  if(btn)btn.textContent='Syncing…';
+  shErr('SYNCING WITH GOOGLE DRIVE…');
+  const drivePL=await fetchDrivePlaylist();
+  if(drivePL&&drivePL.length){
+    playlist=drivePL;
+    // Also update Firebase so controller sees it
+    db.ref('playlist').set(drivePL.map((f,i)=>({id:f.id,name:f.name,size:f.size||0,index:i})));
+    db.ref('sync/lastSync').set(Date.now());
+    renderPL();
+    hiErr();
+    if(btn)btn.textContent='✓ '+drivePL.length+' songs';
+    setTimeout(()=>{if(btn)btn.textContent='↻ Sync'},2000);
+  }else{
+    // Fall back to Firebase playlist
+    db.ref('playlist').once('value',s=>{
+      const pl=s.val();
+      if(pl){
+        const arr=Array.isArray(pl)?pl:Object.values(pl||{});
+        playlist=arr.filter(Boolean).map((x,i)=>({...x,index:i}));
+        renderPL();
+        if(playlist.length){hiErr();if(btn)btn.textContent='✓ '+playlist.length;}
+        else{if(btn)btn.textContent='✗ Empty'}
+      }else{
+        if(btn)btn.textContent='✗ Failed';
+      }
+      setTimeout(()=>{if(btn)btn.textContent='↻ Sync'},2000);
+    });
+  }
+}
 
 // ═══ IndexedDB Cache — download once, play forever ═══
 const IDB_NAME='ZoneAudioCache',IDB_VER=1;
@@ -528,38 +569,42 @@ async function startPlayer(id){
   au.onplaying=()=>hiErr();
   au.onwaiting=()=>shErr('BUFFERING…');
 
-  // Fetch playlist — get file IDs directly from Google Drive (Pi sync removes IDs)
+  // Fetch playlist — try Drive first, then Firebase
   const drivePL=await fetchDrivePlaylist();
   if(drivePL&&drivePL.length){
     playlist=drivePL;
-    console.log('Loaded '+playlist.length+' songs from Google Drive with IDs');
+    console.log('Loaded '+playlist.length+' songs from Google Drive');
     renderPL();
     if(pS.st==='standby'&&playlist.length){
       if(useLocal)playSong(0);
       else shErr('TAP ▶ OR A SONG TO START');
     }
+  }else{
+    console.log('Drive fetch returned empty — waiting for Firebase playlist');
   }
-  // Also listen to Firebase playlist for updates (merge IDs if missing)
+  // Always listen to Firebase playlist for updates
   db.ref('playlist').on('value',s=>{
     const pl=s.val();if(!pl)return;
     const arr=Array.isArray(pl)?pl:Object.values(pl||{});
     const fbList=arr.filter(Boolean).map((x,i)=>({...x,index:i}));
-    // If Firebase playlist has IDs, use it; otherwise keep Drive-fetched list
-    if(fbList.length&&fbList[0].id){
-      playlist=fbList;
-    }else if(!drivePL||!drivePL.length){
-      // No Drive list and Firebase has no IDs — use names at least
-      playlist=fbList;
-    }
-    // Merge: if Drive list has IDs but Firebase doesn't, map IDs by name
-    if(drivePL&&drivePL.length&&fbList.length&&!fbList[0].id){
-      const idMap={};drivePL.forEach(s=>{idMap[s.name]=s.id});
-      playlist=fbList.map(s=>({...s,id:idMap[s.name]||s.id}));
-    }
-    renderPL();
-    if(pS.st==='standby'&&playlist.length&&!drivePL){
-      if(useLocal)playSong(0);
-      else shErr('TAP ▶ OR A SONG TO START');
+    if(fbList.length){
+      // If Firebase has IDs, use it directly
+      if(fbList[0].id){
+        playlist=fbList;
+      }else if(drivePL&&drivePL.length){
+        // Merge IDs from Drive into Firebase list
+        const idMap={};drivePL.forEach(s2=>{idMap[s2.name]=s2.id});
+        playlist=fbList.map(s2=>({...s2,id:idMap[s2.name]||s2.id}));
+      }else{
+        // No IDs anywhere — use names only
+        playlist=fbList;
+      }
+      renderPL();
+      hiErr();
+      if(pS.st==='standby'&&playlist.length){
+        if(useLocal)playSong(0);
+        else shErr('TAP ▶ OR A SONG TO START');
+      }
     }
   });
   db.ref(`players/${id}/command`).on('value',s=>{const cmd=s.val();if(cmd)execCmd(cmd)});
@@ -616,11 +661,11 @@ async function playSong(i){
 }
 function playNext(){playSong(pS.idx+1)}
 function playPrev(){playSong(pS.idx-1)}
-function playResume(){unlockAudio();const au=document.getElementById('au');if(pS.st==='paused'){au.play();return}playSong(pS.idx>=0?pS.idx:0)}
+function playResume(){try{unlockAudio()}catch(e){}const au=document.getElementById('au');if(pS.st==='paused'){au.play();return}playSong(pS.idx>=0?pS.idx:0)}
 function doPause(){document.getElementById('au').pause();pS.st='paused';updUI();repSt()}
 function localVol(v){pS.vol=v/100;document.getElementById('au').volume=pS.muted?0:pS.vol;document.getElementById('vol-num').textContent=v;repSt()}
 
-function renderPL(){const el=document.getElementById('p-pl'),empty=document.getElementById('queue-empty'),meta=document.getElementById('queue-meta');if(!playlist.length){el.style.display='none';if(empty)empty.style.display='block';if(meta)meta.textContent='Waiting';return}el.style.display='block';if(empty)empty.style.display='none';if(meta)meta.textContent=playlist.length+' tracks';el.innerHTML='';playlist.forEach((s,i)=>{const d=document.createElement('div');d.className='pl-item'+(i===pS.idx?' active':'');d.innerHTML=`<span class="pl-num">${String(i+1).padStart(2,'0')}</span><span class="pl-name">${esc(s.name.replace(/\.[^/.]+$/,''))}</span>`;d.onclick=()=>{unlockAudio();playSong(i)};el.appendChild(d)})}
+function renderPL(){const el=document.getElementById('p-pl'),empty=document.getElementById('queue-empty'),meta=document.getElementById('queue-meta');if(!playlist.length){if(el)el.style.display='none';if(empty)empty.style.display='block';if(meta)meta.textContent='Waiting';return}if(el)el.style.display='block';if(empty)empty.style.display='none';if(meta)meta.textContent=playlist.length+' tracks';el.innerHTML='';playlist.forEach((s,i)=>{const d=document.createElement('div');d.className='pl-item'+(i===pS.idx?' active':'');d.innerHTML=`<span class="pl-num">${String(i+1).padStart(2,'0')}</span><span class="pl-name">${esc(s.name.replace(/\.[^/.]+$/,''))}</span>`;d.addEventListener('click',function(){try{unlockAudio()}catch(e){}playSong(i)});el.appendChild(d)})}
 
 function execCmd(cmd){
   if(!cmd||!cmd.ts)return;
