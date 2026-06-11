@@ -617,74 +617,110 @@ function execCmd(cmd){
 
 // ═══ WebRTC BROADCAST RECEIVER ═══
 function disconnectBcast(){
-  if(playerPC){playerPC.close();playerPC=null}
+  if(playerPC){try{playerPC.close()}catch(e){}playerPC=null}
   if(reconnTimer){clearTimeout(reconnTimer);reconnTimer=null}
-  // Clean up Firebase listeners
   if(pS.id){
     db.ref(`broadcast/signals/${pS.id}/offer`).off();
     db.ref(`broadcast/signals/${pS.id}/bc_ice`).off();
   }
+  console.log('Disconnected from broadcast');
 }
 
 async function connectBcast(pid){
   disconnectBcast();
   console.log('Connecting to broadcast for zone',pid);
-  // Request connection from broadcaster
+  
+  // Check if broadcast is actually online
+  const status=await db.ref('broadcast/status').get().then(s=>s.val());
+  if(!status||!status.online||(Date.now()-status.ts>10000)){
+    console.log('Broadcast not online');
+    shErr('BROADCAST OFFLINE — Start broadcaster first');
+    return;
+  }
+  
+  // Clean old signals for our zone
+  await db.ref(`broadcast/signals/${pid}/answer`).remove();
+  await db.ref(`broadcast/signals/${pid}/pl_ice`).remove();
+  
+  // Send connection request
   await db.ref(`broadcast/requests/${pid}`).set({ts:Date.now()});
+  console.log('Sent connection request for zone',pid);
+  shErr('CONNECTING TO BROADCAST…');
+  
   // Wait for offer from broadcaster
+  let offerHandled=false;
   db.ref(`broadcast/signals/${pid}/offer`).on('value',async snap=>{
     const o=snap.val();
-    if(!o)return;
-    console.log('Received broadcast offer for zone',pid);
-    if(playerPC)playerPC.close();
-    playerPC=new RTCPeerConnection(ICE);
-    playerPC.ontrack=e=>{
-      console.log('Received audio track from broadcaster');
-      const au=document.getElementById('au');
-      au.srcObject=e.streams[0];
-      au.volume=pS.muted?0:pS.vol;
-      au.playbackRate=1.0;
-      // Set jitter buffer for smooth playback
-      try{playerPC.getReceivers().forEach(r=>{if(r.jitterBufferTarget!==undefined)r.jitterBufferTarget=150})}catch(ex){}
-      au.play().then(()=>{
-        pS.st='playing';pS.fn='🎙 LIVE BROADCAST';
-        updUI();repSt();
-      }).catch(e=>{
-        pS.st='ready';shErr('TAP ▶ TO HEAR LIVE');
-      });
-    };
-    playerPC.onicecandidate=e=>{
-      if(e.candidate)db.ref(`broadcast/signals/${pid}/pl_ice/${Date.now()}`).set(JSON.stringify(e.candidate));
-    };
-    playerPC.onconnectionstatechange=()=>{
-      const s=playerPC.connectionState;
-      console.log('Broadcast connection:',s);
-      if(s==='connected'){
-        pS.st='playing';pS.fn='🎙 LIVE BROADCAST';
-        hiErr();updUI();repSt();
-      }
-      if(s==='disconnected'||s==='failed'){
-        pS.st='reconnecting';updUI();
-        reconnTimer=setTimeout(()=>{
-          if(pS.src==='live'){connectBcast(pid)}
-        },3000);
-      }
-    };
+    if(!o||offerHandled)return;
+    offerHandled=true;
+    console.log('Received offer from broadcaster');
+    
     try{
+      if(playerPC)try{playerPC.close()}catch(e){}
+      playerPC=new RTCPeerConnection(ICE);
+      
+      playerPC.ontrack=e=>{
+        console.log('Received audio track!');
+        const au=document.getElementById('au');
+        au.srcObject=e.streams[0];
+        au.volume=pS.muted?0:pS.vol;
+        au.playbackRate=1.0;
+        try{playerPC.getReceivers().forEach(r=>{if(r.jitterBufferTarget!==undefined)r.jitterBufferTarget=150})}catch(ex){}
+        au.play().then(()=>{
+          pS.st='playing';pS.fn='🎙 LIVE BROADCAST';
+          hiErr();updUI();repSt();
+        }).catch(e=>{
+          pS.st='ready';shErr('TAP ▶ TO HEAR LIVE');
+        });
+      };
+      
+      playerPC.onicecandidate=e=>{
+        if(e.candidate)db.ref(`broadcast/signals/${pid}/pl_ice/${Date.now()}`).set(JSON.stringify(e.candidate));
+      };
+      
+      playerPC.onconnectionstatechange=()=>{
+        const s=playerPC?playerPC.connectionState:'closed';
+        console.log('Broadcast connection:',s);
+        if(s==='connected'){
+          pS.st='playing';pS.fn='🎙 LIVE BROADCAST';
+          hiErr();updUI();repSt();
+        }
+        if(s==='disconnected'||s==='failed'){
+          pS.st='error';shErr('BROADCAST DISCONNECTED — RECONNECTING…');updUI();
+          reconnTimer=setTimeout(()=>{
+            if(pS.src==='live'){offerHandled=false;connectBcast(pid)}
+          },3000);
+        }
+      };
+      
       await playerPC.setRemoteDescription(JSON.parse(o));
       const ans=await playerPC.createAnswer();
       await playerPC.setLocalDescription(ans);
       await db.ref(`broadcast/signals/${pid}/answer`).set(JSON.stringify(ans));
       console.log('Sent answer to broadcaster');
+      
+      // Listen for broadcaster ICE candidates
+      db.ref(`broadcast/signals/${pid}/bc_ice`).on('child_added',async s=>{
+        try{await playerPC.addIceCandidate(JSON.parse(s.val()))}catch(e){}
+      });
+      
     }catch(e){
-      console.error('WebRTC signaling error:',e);
-      shErr('BROADCAST CONNECTION FAILED');
+      console.error('WebRTC error:',e);
+      shErr('CONNECTION FAILED — RETRYING…');
+      reconnTimer=setTimeout(()=>{
+        if(pS.src==='live'){offerHandled=false;connectBcast(pid)}
+      },3000);
     }
-    // Listen for broadcaster ICE candidates
-    db.ref(`broadcast/signals/${pid}/bc_ice`).on('child_added',async s=>{
-      try{await playerPC.addIceCandidate(JSON.parse(s.val()))}catch(e){}
-    });
   });
+  
+  // Timeout — if no offer in 10 seconds, retry
+  setTimeout(()=>{
+    if(!offerHandled&&pS.src==='live'){
+      console.log('No offer received, retrying...');
+      offerHandled=false;
+      connectBcast(pid);
+    }
+  },10000);
 }
 
 function updUI(){
