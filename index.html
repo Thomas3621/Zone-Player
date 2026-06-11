@@ -590,28 +590,85 @@ function localVol(v){pS.vol=v/100;document.getElementById('au').volume=pS.muted?
 function renderPL(){const el=document.getElementById('p-pl'),empty=document.getElementById('queue-empty'),meta=document.getElementById('queue-meta');if(!playlist.length){el.style.display='none';if(empty)empty.style.display='block';if(meta)meta.textContent='Waiting';return}el.style.display='block';if(empty)empty.style.display='none';if(meta)meta.textContent=playlist.length+' tracks';el.innerHTML='';playlist.forEach((s,i)=>{const d=document.createElement('div');d.className='pl-item'+(i===pS.idx?' active':'');d.innerHTML=`<span class="pl-num">${String(i+1).padStart(2,'0')}</span><span class="pl-name">${esc(s.name.replace(/\.[^/.]+$/,''))}</span>`;d.onclick=()=>{unlockAudio();playSong(i)};el.appendChild(d)})}
 
 function execCmd(cmd){
-  if(cmd.ts===lastTs)return;lastTs=cmd.ts;
-  if(cmd.source){
-    pS.src=cmd.source;
-    if(cmd.source==='live'){
-      // Pause local playback and connect to broadcast
-      document.getElementById('au').pause();
-      connectBcast(pS.id);
-    }else if(cmd.source==='local'){
-      // Disconnect from broadcast
-      disconnectBcast();
-      if(playlist.length&&pS.idx>=0)playSong(pS.idx);
+  if(!cmd||!cmd.ts)return;
+  if(cmd.ts===lastTs)return;
+  lastTs=cmd.ts;
+  console.log('CMD received:',JSON.stringify(cmd));
+
+  // Handle source switch FIRST — most important
+  const newSource=cmd.source||null;
+  const action=cmd.action||'';
+
+  if(action==='source'||newSource){
+    const src=newSource||cmd.source;
+    if(src&&src!==pS.src){
+      console.log('Source switch:',pS.src,'→',src);
+      pS.src=src;
+      const au=document.getElementById('au');
+      if(src==='live'){
+        // FORCE stop local playback
+        au.pause();
+        au.currentTime=0;
+        au.src='';
+        au.srcObject=null;
+        pS.st='connecting';
+        pS.fn='🎙 LIVE BROADCAST';
+        shErr('SWITCHING TO LIVE…');
+        updUI();updMode();repSt();
+        // Connect to broadcast
+        connectBcast(pS.id);
+        return; // Don't process other actions
+      }else if(src==='local'){
+        // Disconnect broadcast, resume local
+        disconnectBcast();
+        const au2=document.getElementById('au');
+        au2.srcObject=null;
+        pS.fn='';
+        updMode();
+        if(playlist.length&&pS.idx>=0)playSong(pS.idx);
+        return;
+      }
     }
     updMode();
   }
-  if(cmd.mute!==undefined){pS.muted=cmd.mute;document.getElementById('au').volume=pS.muted?0:pS.vol}
-  if(cmd.volume!==undefined){pS.vol=cmd.volume;if(!pS.muted)document.getElementById('au').volume=cmd.volume;document.getElementById('vol-range').value=Math.round(cmd.volume*100);document.getElementById('vol-num').textContent=Math.round(cmd.volume*100)}
-  if(cmd.action==='play'){if(pS.src==='local'){if(pS.st==='paused')document.getElementById('au').play();else playSong(pS.idx>=0?pS.idx:0)}}
-  else if(cmd.action==='pause'){document.getElementById('au').pause();pS.st='paused'}
-  else if(cmd.action==='stop'){const a=document.getElementById('au');a.pause();a.currentTime=0;pS.st='stopped';document.getElementById('np-fg').style.width='0%';document.getElementById('np-ct').textContent='0:00';disconnectBcast()}
-  else if(cmd.action==='next')playNext();
-  else if(cmd.action==='prev')playPrev();
-  else if(cmd.action==='source'){updMode()}
+
+  // Handle mute
+  if(cmd.mute!==undefined){
+    pS.muted=cmd.mute;
+    document.getElementById('au').volume=pS.muted?0:pS.vol;
+    console.log('Mute:',pS.muted);
+  }
+
+  // Handle volume
+  if(cmd.volume!==undefined){
+    pS.vol=cmd.volume;
+    if(!pS.muted)document.getElementById('au').volume=cmd.volume;
+    document.getElementById('vol-range').value=Math.round(cmd.volume*100);
+    document.getElementById('vol-num').textContent=Math.round(cmd.volume*100);
+  }
+
+  // Handle transport actions (only in local mode)
+  if(action==='play'){
+    if(pS.src==='local'){
+      if(pS.st==='paused')document.getElementById('au').play();
+      else playSong(pS.idx>=0?pS.idx:0);
+    }else if(pS.src==='live'){
+      // Try to play live audio if paused
+      document.getElementById('au').play().catch(()=>{});
+    }
+  }
+  else if(action==='pause'){document.getElementById('au').pause();pS.st='paused'}
+  else if(action==='stop'){
+    const a=document.getElementById('au');a.pause();a.currentTime=0;a.src='';a.srcObject=null;
+    pS.st='stopped';
+    document.getElementById('np-fg').style.width='0%';
+    document.getElementById('np-ct').textContent='0:00';
+    disconnectBcast();
+  }
+  else if(action==='next'&&pS.src==='local')playNext();
+  else if(action==='prev'&&pS.src==='local')playPrev();
+  else if(action==='mute'){/* handled above */}
+
   updUI();repSt();
 }
 
