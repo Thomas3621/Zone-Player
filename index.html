@@ -437,54 +437,30 @@ function getSongURL(song){
   return''; // cloud mode uses download-then-play
 }
 // Fetch file list directly from Google Drive API
-async function fetchDrivePlaylist(){
-  try{
-    console.log('Fetching playlist from Google Drive...');
-    const url=`https://www.googleapis.com/drive/v3/files?q='${GDRIVE_FOLDER}'+in+parents+and+trashed=false&key=${GAPI}&fields=files(id,name,size)&pageSize=500`;
-    const r=await fetch(url);
-    if(!r.ok){console.error('Drive API error:',r.status,r.statusText);shErr('DRIVE SYNC FAILED ('+r.status+') — tap Sync on controller');return null}
-    const d=await r.json();
-    if(d.error){console.error('Drive API error:',d.error.message);shErr('DRIVE ERROR: '+d.error.message);return null}
-    const AX=['mp3','wav','ogg','flac','aac','m4a','wma','opus'];
-    const files=(d.files||[]).filter(f=>{const ext=(f.name.split('.').pop()||'').toLowerCase();return AX.includes(ext)}).sort((a,b)=>a.name.localeCompare(b.name)).map((f,i)=>({id:f.id,name:f.name,size:parseInt(f.size)||0,index:i}));
-    console.log('Drive returned '+files.length+' audio files');
-    if(!files.length)shErr('NO AUDIO FILES IN DRIVE FOLDER');
-    return files;
-  }catch(e){console.error('Drive fetch error:',e);shErr('DRIVE OFFLINE — tap Sync on controller');return null}
-}
-const GDRIVE_FOLDER="13KGisCtqNCWuulbARBN0ufF3M-6UdC85";
-
-// Player sync button
+// Player sync — reads from Firebase only (controller pushes playlist there)
 async function playerSync(){
   const btn=document.getElementById('sync-btn');
   if(btn)btn.textContent='Syncing…';
-  shErr('SYNCING WITH GOOGLE DRIVE…');
-  const drivePL=await fetchDrivePlaylist();
-  if(drivePL&&drivePL.length){
-    playlist=drivePL;
-    // Also update Firebase so controller sees it
-    db.ref('playlist').set(drivePL.map((f,i)=>({id:f.id,name:f.name,size:f.size||0,index:i})));
-    db.ref('sync/lastSync').set(Date.now());
-    renderPL();
-    hiErr();
-    if(btn)btn.textContent='✓ '+drivePL.length+' songs';
-    setTimeout(()=>{if(btn)btn.textContent='↻ Sync'},2000);
-  }else{
-    // Fall back to Firebase playlist
-    db.ref('playlist').once('value',s=>{
-      const pl=s.val();
-      if(pl){
-        const arr=Array.isArray(pl)?pl:Object.values(pl||{});
-        playlist=arr.filter(Boolean).map((x,i)=>({...x,index:i}));
-        renderPL();
-        if(playlist.length){hiErr();if(btn)btn.textContent='✓ '+playlist.length;}
-        else{if(btn)btn.textContent='✗ Empty'}
-      }else{
-        if(btn)btn.textContent='✗ Failed';
-      }
-      setTimeout(()=>{if(btn)btn.textContent='↻ Sync'},2000);
+  try{
+    const snap=await new Promise((res,rej)=>{
+      const t=setTimeout(()=>rej('timeout'),8000);
+      db.ref('playlist').once('value',s=>{clearTimeout(t);res(s)},e=>{clearTimeout(t);rej(e)});
     });
+    const pl=snap.val();
+    if(pl){
+      const arr=Array.isArray(pl)?pl:Object.values(pl||{});
+      playlist=arr.filter(Boolean).map((x,i)=>({...x,index:i}));
+      renderPL();hiErr();
+      if(btn)btn.textContent='✓ '+playlist.length;
+    }else{
+      shErr('EMPTY — Tap ↻ Sync on iPad controller first');
+      if(btn)btn.textContent='✗ Empty';
+    }
+  }catch(e){
+    shErr('SYNC FAILED — Check connection');
+    if(btn)btn.textContent='✗ Failed';
   }
+  setTimeout(()=>{if(btn)btn.textContent='↻ Sync'},3000);
 }
 
 // ═══ IndexedDB Cache — download once, play forever ═══
@@ -569,42 +545,15 @@ async function startPlayer(id){
   au.onplaying=()=>hiErr();
   au.onwaiting=()=>shErr('BUFFERING…');
 
-  // Fetch playlist — try Drive first, then Firebase
-  const drivePL=await fetchDrivePlaylist();
-  if(drivePL&&drivePL.length){
-    playlist=drivePL;
-    console.log('Loaded '+playlist.length+' songs from Google Drive');
+  // Load playlist from Firebase (controller syncs it there)
+  db.ref('playlist').on('value',s=>{
+    const pl=s.val();if(!pl)return;
+    const arr=Array.isArray(pl)?pl:Object.values(pl||{});
+    playlist=arr.filter(Boolean).map((x,i)=>({...x,index:i}));
     renderPL();
     if(pS.st==='standby'&&playlist.length){
       if(useLocal)playSong(0);
       else shErr('TAP ▶ OR A SONG TO START');
-    }
-  }else{
-    console.log('Drive fetch returned empty — waiting for Firebase playlist');
-  }
-  // Always listen to Firebase playlist for updates
-  db.ref('playlist').on('value',s=>{
-    const pl=s.val();if(!pl)return;
-    const arr=Array.isArray(pl)?pl:Object.values(pl||{});
-    const fbList=arr.filter(Boolean).map((x,i)=>({...x,index:i}));
-    if(fbList.length){
-      // If Firebase has IDs, use it directly
-      if(fbList[0].id){
-        playlist=fbList;
-      }else if(drivePL&&drivePL.length){
-        // Merge IDs from Drive into Firebase list
-        const idMap={};drivePL.forEach(s2=>{idMap[s2.name]=s2.id});
-        playlist=fbList.map(s2=>({...s2,id:idMap[s2.name]||s2.id}));
-      }else{
-        // No IDs anywhere — use names only
-        playlist=fbList;
-      }
-      renderPL();
-      hiErr();
-      if(pS.st==='standby'&&playlist.length){
-        if(useLocal)playSong(0);
-        else shErr('TAP ▶ OR A SONG TO START');
-      }
     }
   });
   db.ref(`players/${id}/command`).on('value',s=>{const cmd=s.val();if(cmd)execCmd(cmd)});
